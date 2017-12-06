@@ -11,19 +11,7 @@ that function.
 ]]
 end
 
-local function transfer(from, to, what)
-  to[what] = from[what]
-  from[what] = nil
-end
-
 return function(args)
-  local ddlt = require 'ddlt'
-
-  transfer(ddlt, io, 'realpath')
-  transfer(ddlt, io, 'split')
-  transfer(ddlt, io, 'scandir')
-  transfer(ddlt, io, 'stat')
-
   if #args == 0 then
     usage(io.stderr)
     os.exit(1)
