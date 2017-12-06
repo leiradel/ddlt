@@ -134,4 +134,4 @@ Templates can be used to make it easier to generate code. The template engine us
 * `/*= ... */` causes `...` to be generated in the output
 * `/*! ... */` causes `...` to be executed as Lua code
 
-`newTemplate` accepts annotated code and returns a string containing Lua source code that will tun the template when executed. This function accepts two arguments, `defs`, which should be the result of your parser, and `emit` a function which must output all the arguments passed to it as a vararg.
+`newTemplate` accepts annotated code and returns a string containing Lua source code that will tun the template when executed. This function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit` a function which must output all the arguments passed to it as a vararg.
