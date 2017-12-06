@@ -12,8 +12,10 @@
 
 #ifdef WIN32
 char __cdecl* realpath(const char* __restrict__ name, char* __restrict__ resolved);
+#define PATH_SEPARATOR '\\'
 #else
 #define _MAX_PATH PATH_MAX
+#define PATH_SEPARATOR '/'
 #endif
 
 int realpath_lua(lua_State* L)
@@ -50,7 +52,7 @@ int split_lua(lua_State* L)
   const char* ext = path + length;
   const char* name;
   
-  while (ext >= path && *ext != '.' && *ext != '/' && *ext != '\\')
+  while (ext > path && *ext != '.' && *ext != '/' && *ext != '\\')
   {
     ext--;
   }
@@ -62,7 +64,7 @@ int split_lua(lua_State* L)
     ext = NULL;
   }
   
-  while (name >= path && *name != '/' && *name != '\\')
+  while (name > path && *name != '/' && *name != '\\')
   {
     name--;
   }
@@ -93,6 +95,41 @@ int split_lua(lua_State* L)
   }
   
   return 3;
+}
+
+int join_lua(lua_State* L)
+{
+  size_t path_length, name_length, ext_length;
+  const char* path;
+  const char* name;
+  const char* ext;
+  luaL_Buffer join;
+
+  path = lua_tolstring(L, 1, &path_length);
+  name = lua_tolstring(L, 2, &name_length);
+  ext  = lua_tolstring(L, 3, &ext_length);
+
+  luaL_buffinit(L, &join);
+
+  if (path != NULL)
+  {
+    luaL_addlstring(&join, path, path_length);
+    luaL_addchar(&join, PATH_SEPARATOR);
+  }
+
+  if (name != NULL)
+  {
+    luaL_addlstring(&join, name, name_length);
+  }
+
+  if (ext != NULL)
+  {
+    luaL_addchar(&join, '.');
+    luaL_addlstring(&join, ext, ext_length);
+  }
+
+  luaL_pushresult(&join);
+  return 1;
 }
 
 int scandir_lua(lua_State* L)

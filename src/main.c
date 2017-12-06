@@ -54,6 +54,7 @@ static int open_lib(lua_State* L)
     {"newTemplate", newTemplate_lua},
     {"realpath",    realpath_lua},
     {"split",       split_lua},
+    {"join",        join_lua},
     {"scandir",     scandir_lua},
     {"stat",        stat_lua},
     {NULL,          NULL}
