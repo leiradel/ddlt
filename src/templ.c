@@ -14,11 +14,23 @@ int newTemplate_lua(lua_State* L)
   luaL_Buffer code;
   luaL_buffinit(L, &code);
 
-  luaL_addstring(&code, "return function(defs, emit); ");
+  luaL_addstring(&code, "return function(args, emit); ");
   
   for (;;)
   {
-    const char* start = strstr(current, "/*");
+    const char* start = current;
+    
+    for (;;)
+    {
+      start = strstr(start, "/*");
+
+      if (start == NULL || start[2] == '=' || start[2] == '!')
+      {
+        break;
+      }
+
+      start++;
+    }
     
     if (start == NULL)
     {
@@ -47,24 +59,16 @@ int newTemplate_lua(lua_State* L)
     luaL_addlstring(&code, current, start - current);
     luaL_addstring(&code, "]===] ");
     
-    switch (start[2])
+    if (start[2] == '=')
     {
-    case '=':
       luaL_addstring(&code, "emit(tostring(");
       luaL_addlstring(&code, start + 3, finish - 1 - (start + 3) + 1);
       luaL_addstring(&code, ")) ");
-      break;
-      
-    case '!':
+    }
+    else
+    {
       luaL_addlstring(&code, start + 3, finish - 1 - (start + 3) + 1);
       luaL_addchar(&code, ' ');
-      break;
-
-    default:
-      luaL_addstring(&code, "emit[===[");
-      luaL_addlstring(&code, start, finish + 2 - start);
-      luaL_addstring(&code, "]===] ");
-      break;
     }
     
     current = finish + 2;
