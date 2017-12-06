@@ -135,7 +135,7 @@ local function djb2(str)
 end
 */
 
-/*! for _, enum in ipairs(defs) do */
+/*! for _, enum in ipairs(args) do */
 enum class /*= enum.name */ {
   /*! for _, field in pairs(enum.fields) do */
   /*= field:sub(2, -2):gsub('%s', '_') */ = /*= string.format('0x%x', djb2(field)) */,
