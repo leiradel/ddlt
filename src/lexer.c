@@ -80,7 +80,7 @@ static int push(lua_State* L, const lexer_t* self, const char* token, size_t tok
   lua_pushlstring(L, lexeme, lexeme_length);
   lua_setfield(L, 2, "lexeme");
 
-  lua_pushnumber(L, self->line - (self->last_char == '\n'));
+  lua_pushinteger(L, self->line - (self->last_char == '\n'));
   lua_setfield(L, 2, "line");
 
   lua_pushvalue(L, 2);
