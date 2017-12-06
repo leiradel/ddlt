@@ -78,18 +78,18 @@ int split_lua(lua_State* L)
   }
   else
   {
-    lua_pushliteral(L, "");
+    lua_pushnil(L);
   }
   
   if (ext != NULL)
   {
     lua_pushlstring(L, name, ext - name);
-    lua_pushstring(L, ext);
+    lua_pushstring(L, ext + 1);
   }
   else
   {
     lua_pushstring(L, name);
-    lua_pushliteral(L, "");
+    lua_pushnil(L);
   }
   
   return 3;
@@ -97,7 +97,7 @@ int split_lua(lua_State* L)
 
 int scandir_lua(lua_State* L)
 {
-  const char* name = luaL_checkstring( L, 1 );
+  const char* name = luaL_checkstring(L, 1);
   DIR* dir = opendir( name );
   struct dirent* entry;
   int ndx;
