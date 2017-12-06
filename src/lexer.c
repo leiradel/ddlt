@@ -382,6 +382,36 @@ static int get_string(lua_State* L, lexer_t* self, int k)
   return push(L, self, "<string>", 8, lexeme, self->source - lexeme - 1);
 }
 
+static int free_form(lua_State* L, lexer_t* self)
+{
+  const char* lexeme = self->source - 1;
+  int k;
+
+  skip(self);
+  skip(self);
+  
+  do
+  {
+    k = skip(self);
+
+    while (k != '}')
+    {
+      if (k == -1)
+      {
+        return error(L, self, "unterminated free-form block");
+      }
+
+      k = skip(self);
+    }
+
+    k = skip(self);
+  }
+  while (k != ']');
+
+  self->last_char = skip(self);
+  return push(L, self, "<freeform>", 10, lexeme, self->source - lexeme - 1);
+}
+
 static void line_comment(lua_State* L, lexer_t* self)
 {
   int k;
@@ -473,15 +503,20 @@ again:
 
   lexeme = self->source - 1;
 
-  if (self->end - lexeme >= 2 && lexeme[0] == '/')
+  if (self->end - lexeme >= 2)
   {
-    if (lexeme[1] == '/')
+    if (lexeme[0] == '[' && lexeme[1] == '{')
+    {
+      return free_form(L, self);
+    }
+
+    if (lexeme[0] == '/' && lexeme[1] == '/')
     {
       line_comment(L, self);
       goto again;
     }
 
-    if (lexeme[1] == '*')
+    if (lexeme[0] == '/' && lexeme[1] == '*')
     {
       block_comment(L, self);
       goto again;
