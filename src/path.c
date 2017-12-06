@@ -5,11 +5,16 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <errno.h>
 
 #include <lua.h>
 #include <lauxlib.h>
 
-char __cdecl *realpath( const char *__restrict__ name, char *__restrict__ resolved );
+#ifdef WIN32
+char __cdecl* realpath(const char* __restrict__ name, char* __restrict__ resolved);
+#else
+#define _MAX_PATH PATH_MAX
+#endif
 
 int realpath_lua(lua_State* L)
 {

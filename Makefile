@@ -19,7 +19,7 @@ LUA=src/lua/src/lapi.o src/lua/src/lauxlib.o src/lua/src/lbaselib.o \
 all: ddlt
 
 ddlt: src/main.o src/lexer.o src/path.o src/templ.o src/realpath.o $(LUA)
-	gcc -o $@ $+
+	gcc -o $@ $+ -lm
 
 src/main.o: src/main.c src/lexer.h src/path.h src/templ.h src/boot_lua.h
 
