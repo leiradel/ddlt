@@ -105,9 +105,10 @@ Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require
 
 `newLexer` returns a tokenizer for a given soure code. It accepts a table with the following fields:
 
-* `source`: a string with the entire source code that will be tokenized
-* `file`: a string with the name of the object used to create the source code (usually the file name from where the source code was read, this is used for error messages)
-* `isSymbol`: a function which takes a lexeme and must return `true` if that lexeme is a valid symbol
+* `source`: a string with the entire source code that will be tokenized.
+* `file`: a string with the name of the object used to create the source code (usually the file name from where the source code was read, this is used for error messages).
+* `isSymbol`: a function which takes a lexeme and must return `true` if that lexeme is a valid symbol.
+* `language`: a string containing the language used to parse identifiers, string and number literals, and comments. The only supported language for now is `'cpp'`.
 
 The resulting object only has one method, `next`. It takes a table where the information of the next produced token is stored:
 

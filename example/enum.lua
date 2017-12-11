@@ -29,6 +29,7 @@ parse = function(file)
       self.lexer = ddlt.newLexer{
         source = source,
         file = self.file,
+        language = 'cpp',
         isSymbol = function(lexeme) return symbols[lexeme] end
       }
 
