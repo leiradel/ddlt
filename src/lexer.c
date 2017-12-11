@@ -5,17 +5,37 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+typedef enum
+{
+  LINE_COMMENT,
+  BLOCK_COMMENT,
+  FREE_FORMAT
+}
+blocktype_t;
+
+typedef struct
+{
+  const char* begin;
+  const char* end;
+  blocktype_t type;
+}
+block_t;
+
 typedef struct
 {
   const char*   source_name;
   unsigned      line;
   const char*   source;
   const char*   end;
-  lua_CFunction next;
+
   int           last_char;
   int           source_ref;
   int           source_name_ref;
   int           symbols_ref;
+
+  lua_CFunction next;
+  block_t       blocks[8];
+  unsigned      num_blocks;
 }
 lexer_t;
 
@@ -83,6 +103,60 @@ static int is_symbol(lua_State* L, const lexer_t* self, const char* lexeme, size
   lua_pop(L, 1);
 
   return is_symbol;
+}
+
+static int next(lua_State* L, lexer_t* self)
+{
+  int k, save_k;
+  unsigned i, line;
+  const char* j;
+  const char* source;
+
+  luaL_checktype(L, 2, LUA_TTABLE);
+
+  k = self->last_char;
+
+  for (;;)
+  {
+    if (k == -1)
+    {
+      return push(L, self, "<eof>", 5, "<eof>", 5);
+    }
+    else if (!ISSPACE(k))
+    {
+      break;
+    }
+
+    k = skip(self);
+  }
+
+  for (i = 0; i < self->num_blocks; i++)
+  {
+    save_k = k;
+    line = self->line;
+    const char* source = *self->source;
+    j = self->blocks[i].begin;
+
+    while (*j != 0 && *j == k)
+    {
+      j++;
+      k = skip(self);
+    }
+
+    if (*j == 0)
+    {
+      switch (self->blocks[i].type)
+      {
+      case LINE_COMMENT:  return line_comment(L, self);
+      case BLOCK_COMMENT: return block_comment(L, self, self->blocks[i].end);
+      case FREE_FORMAT:   return free_format(L, self, self->blocks[i].end);
+      }
+    }
+
+    self->line = line;
+    self->source = source;
+    k = save_k;
+  }
 }
 
 static int l_index(lua_State* L)
@@ -166,7 +240,7 @@ int newLexer_lua(lua_State* L)
 
   if (language_length == 3 && !strcmp(language, "cpp"))
   {
-    self->next = l_next_cpp;
+    setup_lexer_cpp(self);
   }
   else
   {

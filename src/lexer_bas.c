@@ -1,4 +1,4 @@
-static void format_char_cpp(char* buffer, size_t size, int k)
+static void format_char_bas(char* buffer, size_t size, int k)
 {
   if (isprint(k))
   {
@@ -6,7 +6,7 @@ static void format_char_cpp(char* buffer, size_t size, int k)
   }
   else if (k != -1)
   {
-    snprintf(buffer, size, "'\\%c%c%c", (k >> 6) + '0', ((k >> 3) & 7) + '0', (k & 7) + '0');
+    snprintf(buffer, size, "'Chr(%d)", k);
   }
   else
   {
@@ -14,7 +14,7 @@ static void format_char_cpp(char* buffer, size_t size, int k)
   }
 }
 
-static int get_id_cpp(lua_State* L, lexer_t* self, int k)
+static int get_id_bas(lua_State* L, lexer_t* self, int k)
 {
   const char* lexeme = self->source - 1;
 
@@ -28,11 +28,10 @@ static int get_id_cpp(lua_State* L, lexer_t* self, int k)
   return push(L, self, "<id>", 4, lexeme, self->source - lexeme - 1);
 }
 
-static int get_number_cpp(lua_State* L, lexer_t* self, int k)
+static int get_number_bas(lua_State* L, lexer_t* self, int k)
 {
   const char* lexeme = self->source - 1;
   int base = 10;
-  unsigned suffix = 0;
   char c[8];
   size_t length;
   
@@ -371,22 +370,57 @@ static void block_comment_cpp(lua_State* L, lexer_t* self)
   self->last_char = skip(self);
 }
 
-static int l_next_cpp(lua_State* L, lexer_t* self, int k)
+static int l_next_cpp(lua_State* L)
 {
+  lexer_t* self;
+  int k;
   const char* lexeme;
   size_t length;
   char c[8];
 
+  self = luaL_checkudata(L, 1, "lexer");
+  luaL_checktype(L, 2, LUA_TTABLE);
+  
 again:
+
+  k = self->last_char;
+
+  for (;;)
+  {
+    if (k == -1)
+    {
+      return push(L, self, "<eof>", 5, "<eof>", 5);
+    }
+    else if (!ISSPACE(k))
+    {
+      break;
+    }
+
+    k = skip(self);
+  }
 
   if (ISALPHA(k))
   {
-    return get_id_cpp(L, self, k);
+    return get_id_bas(L, self, k);
   }
 
   if (ISDIGIT(k))
   {
-    return get_number_cpp(L, self, k);
+    return get_number_bas(L, self, k);
+  }
+
+  if (k == '&')
+  {
+    switch (GET(self))
+    {
+    case 'h':
+    case 'H':
+    case 'o':
+    case 'O':
+    case 'b':
+    case 'B':
+      return get_number_bas(L, self, k);
+    }
   }
 
   if (k == '"')
@@ -432,18 +466,4 @@ again:
 
   format_char_cpp(c, sizeof(c), k);
   return error(L, self, "Invalid character in input: %s", c);
-}
-
-static void setup_lexer_cpp(lexer_t* self)
-{
-  self->next = l_next_cpp;
-  self->blocks[0].begin = '//';
-  self->blocks[0].type = LINE_COMMENT;
-  self->blocks[1].begin = '/*';
-  self->blocks[1].end = '*/';
-  self->blocks[1].type = BLOCK_COMMENT;
-  self->blocks[2].begin = "[{";
-  self->blocks[2].end = "}]";
-  self->blocks[2].end = FREE_FORMAT;
-  self->num_blocks = 3;
 }
