@@ -116,33 +116,53 @@ int newLexer_lua(lua_State* L)
 {
   lexer_t* self;
   size_t source_length;
-  const char* source;
-  const char* source_name;
   size_t language_length;
   const char* language;
 
-  luaL_checktype(L, 1, LUA_TTABLE);
+  if (lua_type(L, 1) != LUA_TTABLE)
+  {
+    return luaL_error(L, "lexer options must be a table");
+  }
+
   lua_settop(L, 1);
-  
+
   lua_getfield(L, 1, "source");
-  source = luaL_checklstring(L, -1, &source_length);
+
+  if (lua_type(L, -1) != LUA_TSTRING)
+  {
+    return luaL_error(L, "source must be a string");
+  }
 
   lua_getfield(L, 1, "file");
-  source_name = luaL_checkstring(L, -1);
+
+  if (lua_type(L, -1) != LUA_TSTRING)
+  {
+    return luaL_error(L, "file name must be a string");
+  }
 
   lua_getfield(L, 1, "isSymbol");
-  luaL_checktype(L, -1, LUA_TFUNCTION);
+
+  if (lua_type(L, -1) != LUA_TFUNCTION)
+  {
+    return luaL_error(L, "isSymbol must be a function");
+  }
 
   lua_getfield(L, 1, "language");
-  language = luaL_checklstring(L, -1, &language_length);
+
+  if (lua_type(L, -1) != LUA_TSTRING)
+  {
+    return luaL_error(L, "language name must be a string");
+  }
 
   self = (lexer_t*)lua_newuserdata(L, sizeof(lexer_t));
 
-  self->source_name = source_name;
+  self->source_name = lua_tostring(L, 3);
   self->line        = 1;
-  self->source      = source;
+  self->source      = lua_tolstring(L, 2, &source_length);
   self->end         = self->source + source_length;
   self->last_char   = skip(self);
+
+  language = lua_tolstring(L, 5, &language_length);
 
   if (language_length == 3 && !strcmp(language, "cpp"))
   {
