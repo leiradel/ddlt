@@ -358,7 +358,7 @@ int newLexer_lua(lua_State* L)
 
   if (language_length == 3 && !strcmp(language, "cpp"))
   {
-    setup_lexer_cpp(self);
+    cpp_setup_lexer(self);
   }
   else
   {

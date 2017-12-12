@@ -1,4 +1,4 @@
-static void format_char_cpp(char* buffer, size_t size, int k)
+static void cpp_format_char(char* buffer, size_t size, int k)
 {
   if (isprint(k))
   {
@@ -14,7 +14,7 @@ static void format_char_cpp(char* buffer, size_t size, int k)
   }
 }
 
-static int get_id_cpp(lua_State* L, lexer_t* self, int k)
+static int cpp_get_id(lua_State* L, lexer_t* self, int k)
 {
   const char* lexeme;
   
@@ -30,7 +30,7 @@ static int get_id_cpp(lua_State* L, lexer_t* self, int k)
   return push(L, self, "<id>", 4, lexeme, self->source - lexeme - 1);
 }
 
-static int get_number_cpp(lua_State* L, lexer_t* self, int k)
+static int cpp_get_number(lua_State* L, lexer_t* self, int k)
 {
   const char* lexeme;
   int base;
@@ -52,7 +52,7 @@ static int get_number_cpp(lua_State* L, lexer_t* self, int k)
 
       if (!ISXDIGIT(k))
       {
-        format_char_cpp(c, sizeof(c), k);
+        cpp_format_char(c, sizeof(c), k);
         return error(L, self, "invalid digit %s in hexadecimal constant", c);
       }
 
@@ -92,7 +92,7 @@ static int get_number_cpp(lua_State* L, lexer_t* self, int k)
     }
     while (ISDIGIT(k));
   }
-  
+
   if (base == 10 && k == '.')
   {
     base = 0; /* indicates a floating point constant */
@@ -190,7 +190,7 @@ static int get_number_cpp(lua_State* L, lexer_t* self, int k)
   return error(L, self, "internal error, base is %d", base);
 }
 
-static int get_string_cpp(lua_State* L, lexer_t* self, int k)
+static int cpp_get_string(lua_State* L, lexer_t* self, int k)
 {
   const char* lexeme;
   char c[8];
@@ -291,7 +291,7 @@ static int get_string_cpp(lua_State* L, lexer_t* self, int k)
         continue;
       }
     
-      format_char_cpp(c, sizeof(c), k);
+      cpp_format_char(c, sizeof(c), k);
       return error(L, self, "unknown escape sequence: %s", c);
     }
     else
@@ -304,7 +304,7 @@ static int get_string_cpp(lua_State* L, lexer_t* self, int k)
   return push(L, self, "<string>", 8, lexeme, self->source - lexeme - 1);
 }
 
-static int l_next_cpp(lua_State* L, lexer_t* self, int k)
+static int cpp_next_lua(lua_State* L, lexer_t* self, int k)
 {
   const char* lexeme;
   size_t length;
@@ -312,17 +312,17 @@ static int l_next_cpp(lua_State* L, lexer_t* self, int k)
 
   if (ISALPHA(k))
   {
-    return get_id_cpp(L, self, k);
+    return cpp_get_id(L, self, k);
   }
 
-  if (ISDIGIT(k))
+  if (ISDIGIT(k) || k == '.')
   {
-    return get_number_cpp(L, self, k);
+    return cpp_get_number(L, self, k);
   }
 
   if (k == '"')
   {
-    return get_string_cpp(L, self, k);
+    return cpp_get_string(L, self, k);
   }
 
   lexeme = self->source - 1;
@@ -340,13 +340,13 @@ static int l_next_cpp(lua_State* L, lexer_t* self, int k)
     return push(L, self, lexeme, length - 1, lexeme, length - 1);
   }
 
-  format_char_cpp(c, sizeof(c), k);
+  cpp_format_char(c, sizeof(c), k);
   return error(L, self, "Invalid character in input: %s", c);
 }
 
-static void setup_lexer_cpp(lexer_t* self)
+static void cpp_setup_lexer(lexer_t* self)
 {
-  self->next = l_next_cpp;
+  self->next = cpp_next_lua;
   self->blocks[0].begin = "//";
   self->blocks[0].type = LINE_COMMENT;
   self->blocks[1].begin = "/*";
