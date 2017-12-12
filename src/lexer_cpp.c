@@ -41,7 +41,7 @@ static int get_number_cpp(lua_State* L, lexer_t* self, int k)
   lexeme = self->source - 1;
   base = 10;
   
-  if (k != '.')
+  if (k == '0')
   {
     k = skip(self);
 
@@ -84,7 +84,15 @@ static int get_number_cpp(lua_State* L, lexer_t* self, int k)
       }
     }
   }
-
+  else if (k != '.')
+  {
+    do
+    {
+      k = skip(self);
+    }
+    while (ISDIGIT(k));
+  }
+  
   if (base == 10 && k == '.')
   {
     base = 0; /* indicates a floating point constant */

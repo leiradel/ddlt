@@ -25,70 +25,139 @@ If your parser code is
 ```Lua
 local ddlt = require 'ddlt'
 
-return function(args)
-  local file = assert(io.open(args[1]))
-  local source = file:read('*a')
-  file:close()
+local parse = function(file)
+  local inp = assert(io.open(file, 'rb'))
+  local source = inp:read('*a')
+  inp:close()
 
   local lexer = ddlt.newLexer{
     source = source,
-    file = args[1],
-    isSymbol = function(s) return s == '{' or s == '}' or s == ',' or s == ';' end
+    file = file,
+    language = 'cpp',
+    isSymbol = function(lexeme) return #lexeme == 1 end
   }
 
-  local token
-  local la = {}
+  local tokens = {}
+  local max = 0
 
   repeat
+    local la = {}
     lexer:next(la)
-    token = la.token
-    print(token, la.line, la.lexeme)
-  until token == '<eof>'
+    la.lexeme = la.lexeme:gsub('\n', '\\n')
+    tokens[#tokens + 1] = la
+    max = math.max(max, #la.token)
+  until la.token == '<eof>'
+
+  tokens.max = max
+  return tokens
+end
+
+local template = [[
+/*! local tkfmt = '%-' .. args.max .. 's' */
+/*! for i = 1, #args do */
+/*!  local la = args[ i ] */
+line = /*= string.format('%3d', la.line) */ token = /*= string.format(tkfmt, la.token) */ lexeme = /*= la.lexeme */
+/*! end */
+]]
+
+return function(args)
+  if #args ~= 1 then
+    error('missing input file\n')
+  end
+
+  local res = {}
+  local tokens = parse(args[1])
+  local templ = ddlt.newTemplate(template)
+  templ = assert(load(templ, 'template'))()
+  templ(tokens, function(out) res[#res + 1] = out end)
+
+  res = table.concat(res):gsub('\n+', '\n')
+  io.write(res)
 end
 ```
 
 and you feed a file with the following contents to it
 
 ```C
+// The weapons available in the game
 enum Weapons {
-  "Fist",
-  "Chainsaw",
-  "Pistol",
-  "Shotgun",
-  "Chaingun",
-  "Rocket Launcher",
-  "Plasma Gun",
-  "BFG9000"
+  kFist,
+  kChainsaw,
+  kPistol,
+  kShotgun,
+  kChaingun,
+  kRocketLauncher,
+  kPlasmaGun,
+  kBFG9000
+};
+
+/* The player */
+struct Hero {
+  string name = "Hero";
+  int health = 100;
+  int armour = 0x0;
+  float speed = 14.3;
+  isAlive = [{
+    return true;
+  }]
 };
 ```
 
-the result will be (formatted for easier visualization)
+the result will be
 
 ```
-<id>     1.0  enum
-<id>     1.0  Weapons
-{        1.0  {
-<string> 2.0  "Fist"
-,        2.0  ,
-<string> 3.0  "Chainsaw"
-,        3.0  ,
-<string> 4.0  "Pistol"
-,        4.0  ,
-<string> 5.0  "Shotgun"
-,        5.0  ,
-<string> 6.0  "Chaingun"
-,        6.0  ,
-<string> 7.0  "Rocket Launcher"
-,        7.0  ,
-<string> 8.0  "Plasma Gun"
-,        8.0  ,
-<string> 9.0  "BFG9000"
-}        10.0 }
-;        10.0 ;
-<eof>    10.0 <eof>
+line =   2 token = <id>          lexeme = enum
+line =   2 token = <id>          lexeme = Weapons
+line =   2 token = {             lexeme = {
+line =   3 token = <id>          lexeme = kFist
+line =   3 token = ,             lexeme = ,
+line =   4 token = <id>          lexeme = kChainsaw
+line =   4 token = ,             lexeme = ,
+line =   5 token = <id>          lexeme = kPistol
+line =   5 token = ,             lexeme = ,
+line =   6 token = <id>          lexeme = kShotgun
+line =   6 token = ,             lexeme = ,
+line =   7 token = <id>          lexeme = kChaingun
+line =   7 token = ,             lexeme = ,
+line =   8 token = <id>          lexeme = kRocketLauncher
+line =   8 token = ,             lexeme = ,
+line =   9 token = <id>          lexeme = kPlasmaGun
+line =   9 token = ,             lexeme = ,
+line =  10 token = <id>          lexeme = kBFG9000
+line =  11 token = }             lexeme = }
+line =  11 token = ;             lexeme = ;
+line =  14 token = <id>          lexeme = struct
+line =  14 token = <id>          lexeme = Hero
+line =  14 token = {             lexeme = {
+line =  15 token = <id>          lexeme = string
+line =  15 token = <id>          lexeme = name
+line =  15 token = =             lexeme = =
+line =  15 token = <string>      lexeme = "Hero"
+line =  15 token = ;             lexeme = ;
+line =  16 token = <id>          lexeme = int
+line =  16 token = <id>          lexeme = health
+line =  16 token = =             lexeme = =
+line =  16 token = <decimal>     lexeme = 100
+line =  16 token = ;             lexeme = ;
+line =  17 token = <id>          lexeme = int
+line =  17 token = <id>          lexeme = armour
+line =  17 token = =             lexeme = =
+line =  17 token = <hexadecimal> lexeme = 0x0
+line =  17 token = ;             lexeme = ;
+line =  18 token = <id>          lexeme = float
+line =  18 token = <id>          lexeme = speed
+line =  18 token = =             lexeme = =
+line =  18 token = <float>       lexeme = 14.3
+line =  18 token = ;             lexeme = ;
+line =  19 token = <id>          lexeme = isAlive
+line =  19 token = =             lexeme = =
+line =  21 token = <freeform>    lexeme = \n    return true;\n  
+line =  22 token = }             lexeme = }
+line =  22 token = ;             lexeme = ;
+line =  22 token = <eof>         lexeme = <eof>
 ```
 
-See `example/enum.lua` for a simple parser written using **ddlt**.
+See `example/test.lua` for a simple generator written using **ddlt**.
 
 ## Documentation
 

@@ -14,8 +14,8 @@ static int main_lua(lua_State* L)
   int i, argc;
   const char** argv;
 
-  argc = lua_tointeger(L, lua_upvalueindex(1));
-  argv = (const char**)lua_touserdata(L, lua_upvalueindex(2));
+  argc = lua_tointeger(L, 1);
+  argv = (const char**)lua_touserdata(L, 2);
   
   /* Load main.lua */
   if (luaL_loadbufferx(L, boot_lua, boot_lua_len, "boot.lua", "t" ) != LUA_OK)
@@ -36,10 +36,9 @@ static int main_lua(lua_State* L)
   }
   
   /* Call the bootstrap main function with the args table */
-  lua_call(L, 1, 1);
+  lua_call(L, 1, 0);
   
-  /* Returns the integer result */
-  return lua_tointeger(L, -1);
+  return 0;
 }
 
 static int traceback(lua_State* L)
@@ -82,11 +81,11 @@ int main(int argc, const char *argv[])
     
     lua_pushcfunction(L, traceback);
     
+    lua_pushcfunction(L, main_lua);
     lua_pushnumber(L, argc);
     lua_pushlightuserdata(L, (void*)argv);
-    lua_pushcclosure(L, main_lua, 2);
     
-    if (lua_pcall(L, 0, 1, -2) != 0)
+    if (lua_pcall(L, 2, 0, -4) != 0)
     {
       fprintf(stderr, "%s\n", lua_tostring(L, -1));
       return 1;
