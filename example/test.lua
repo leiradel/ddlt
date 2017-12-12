@@ -5,11 +5,19 @@ local parse = function(file)
   local source = inp:read('*a')
   inp:close()
 
+  local symbols = {
+    ['{'] = true,
+    ['}'] = true,
+    [','] = true,
+    [';'] = true,
+    ['='] = true
+  }
+
   local lexer = ddlt.newLexer{
     source = source,
     file = file,
     language = 'cpp',
-    isSymbol = function(lexeme) return #lexeme == 1 end
+    isSymbol = function(lexeme) return symbols[lexeme] end
   }
 
   local tokens = {}

@@ -48,6 +48,7 @@ struct lexer_t
 #define ISDIGIT(k)  (isdigit((unsigned char)k))
 #define ISXDIGIT(k) (isxdigit((unsigned char)k))
 #define ISODIGIT(k) (k >= '0' && k <= '7')
+#define ISBDIGIT(k) (k == '0' || k == '1')
 
 static int skip(lexer_t* self)
 {
@@ -219,12 +220,14 @@ static int l_next(lua_State* L)
   unsigned i, line;
   const char* j;
   const char* source;
+  size_t left;
 
   self = luaL_checkudata(L, 1, "lexer");
   luaL_checktype(L, 2, LUA_TTABLE);
 
-again:
   k = self->last_char;
+
+again:
 
   for (;;)
   {
@@ -287,7 +290,25 @@ again:
     k = save_k;
   }
 
-  self->last_char = k;
+  source = self->source - 1;
+  save_k = k;
+  i = 1;
+  left = self->end - source;
+
+  while (left != 0 && is_symbol(L, self, source, i))
+  {
+    k = skip(self);
+    i++;
+    left--;
+  }
+
+  if (i > 1)
+  {
+    self->last_char = k;
+    return push(L, self, source, i - 1, source, i - 1);
+  }
+
+  self->last_char = save_k;
   return self->next(L, self);
 }
 

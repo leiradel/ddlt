@@ -19,7 +19,6 @@ static int cpp_get_id(lua_State* L, lexer_t* self)
   int k;
   const char* lexeme;
   
-  k = self->last_char;
   lexeme = self->source - 1;
 
   do
@@ -310,8 +309,6 @@ static int cpp_get_string(lua_State* L, lexer_t* self)
 static int cpp_next_lua(lua_State* L, lexer_t* self)
 {
   int k;
-  const char* lexeme;
-  size_t length;
   char c[8];
 
   k = self->last_char;
@@ -329,21 +326,6 @@ static int cpp_next_lua(lua_State* L, lexer_t* self)
   if (k == '"')
   {
     return cpp_get_string(L, self);
-  }
-
-  lexeme = self->source - 1;
-  length = 1;
-
-  while (is_symbol(L, self, lexeme, length))
-  {
-    k = skip(self);
-    length++;
-  }
-
-  if (length > 1)
-  {
-    self->last_char = k;
-    return push(L, self, lexeme, length - 1, lexeme, length - 1);
   }
 
   cpp_format_char(c, sizeof(c), k);
