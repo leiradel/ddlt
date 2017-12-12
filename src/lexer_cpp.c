@@ -16,7 +16,9 @@ static void format_char_cpp(char* buffer, size_t size, int k)
 
 static int get_id_cpp(lua_State* L, lexer_t* self, int k)
 {
-  const char* lexeme = self->source - 1;
+  const char* lexeme;
+  
+  lexeme = self->source - 1;
 
   do
   {
@@ -30,21 +32,16 @@ static int get_id_cpp(lua_State* L, lexer_t* self, int k)
 
 static int get_number_cpp(lua_State* L, lexer_t* self, int k)
 {
-  const char* lexeme = self->source - 1;
-  int base = 10;
-  unsigned suffix = 0;
+  const char* lexeme;
+  int base;
+  unsigned suffix;
   char c[8];
   size_t length;
+
+  lexeme = self->source - 1;
+  base = 10;
   
-  if (k != '0')
-  {
-    do
-    {
-      k = skip(self);
-    }
-    while (ISDIGIT(k));
-  }
-  else if (k != '.')
+  if (k != '.')
   {
     k = skip(self);
 
@@ -129,6 +126,8 @@ static int get_number_cpp(lua_State* L, lexer_t* self, int k)
   {
     return error(L, self, "unsigned int must have 32 bits");
   }
+
+  suffix = 0;
   
   while (ISALPHA(k))
   {
@@ -185,10 +184,11 @@ static int get_number_cpp(lua_State* L, lexer_t* self, int k)
 
 static int get_string_cpp(lua_State* L, lexer_t* self, int k)
 {
-  const char* lexeme = self->source - 1;
+  const char* lexeme;
   char c[8];
   int i;
 
+  lexeme = self->source - 1;
   k = skip(self);
 
   for (;;)
@@ -296,88 +296,11 @@ static int get_string_cpp(lua_State* L, lexer_t* self, int k)
   return push(L, self, "<string>", 8, lexeme, self->source - lexeme - 1);
 }
 
-static int free_form_cpp(lua_State* L, lexer_t* self)
-{
-  const char* lexeme = self->source - 1;
-  int k;
-
-  skip(self);
-  skip(self);
-  
-  do
-  {
-    k = skip(self);
-
-    while (k != '}')
-    {
-      if (k == -1)
-      {
-        return error(L, self, "unterminated free-form block");
-      }
-
-      k = skip(self);
-    }
-
-    k = skip(self);
-  }
-  while (k != ']');
-
-  self->last_char = skip(self);
-  return push(L, self, "<freeform>", 10, lexeme, self->source - lexeme - 1);
-}
-
-static void line_comment_cpp(lua_State* L, lexer_t* self)
-{
-  int k;
-
-  skip(self);
-  skip(self);
-  
-  do
-  {
-    k = skip(self);
-  }
-  while (k != '\n' && k != -1);
-
-  self->last_char = skip(self);
-}
-
-static void block_comment_cpp(lua_State* L, lexer_t* self)
-{
-  int k;
-
-  skip(self);
-  skip(self);
-  
-  do
-  {
-    k = skip(self);
-
-    while (k != '*')
-    {
-      if (k == -1)
-      {
-        error(L, self, "unterminated comment");
-        return;
-      }
-
-      k = skip(self);
-    }
-
-    k = skip(self);
-  }
-  while (k != '/');
-
-  self->last_char = skip(self);
-}
-
 static int l_next_cpp(lua_State* L, lexer_t* self, int k)
 {
   const char* lexeme;
   size_t length;
   char c[8];
-
-again:
 
   if (ISALPHA(k))
   {
@@ -395,27 +318,6 @@ again:
   }
 
   lexeme = self->source - 1;
-
-  if (self->end - lexeme >= 2)
-  {
-    if (lexeme[0] == '[' && lexeme[1] == '{')
-    {
-      return free_form_cpp(L, self);
-    }
-
-    if (lexeme[0] == '/' && lexeme[1] == '/')
-    {
-      line_comment_cpp(L, self);
-      goto again;
-    }
-
-    if (lexeme[0] == '/' && lexeme[1] == '*')
-    {
-      block_comment_cpp(L, self);
-      goto again;
-    }
-  }
-
   length = 1;
 
   while (is_symbol(L, self, lexeme, length))
@@ -437,13 +339,13 @@ again:
 static void setup_lexer_cpp(lexer_t* self)
 {
   self->next = l_next_cpp;
-  self->blocks[0].begin = '//';
+  self->blocks[0].begin = "//";
   self->blocks[0].type = LINE_COMMENT;
-  self->blocks[1].begin = '/*';
-  self->blocks[1].end = '*/';
+  self->blocks[1].begin = "/*";
+  self->blocks[1].end = "*/";
   self->blocks[1].type = BLOCK_COMMENT;
   self->blocks[2].begin = "[{";
   self->blocks[2].end = "}]";
-  self->blocks[2].end = FREE_FORMAT;
+  self->blocks[2].type = FREE_FORMAT;
   self->num_blocks = 3;
 }

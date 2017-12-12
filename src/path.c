@@ -20,9 +20,12 @@ char __cdecl* realpath(const char* __restrict__ name, char* __restrict__ resolve
 
 int realpath_lua(lua_State* L)
 {
-  const char* path = luaL_checkstring(L, 1);
+  const char* path;
   char buffer[_MAX_PATH];
-  char* resolved = realpath(path, buffer);
+  char* resolved;
+
+  path = luaL_checkstring(L, 1);
+  resolved = realpath(path, buffer);
   
   if (resolved != NULL)
   {
@@ -48,9 +51,12 @@ int realpath_lua(lua_State* L)
 int split_lua(lua_State* L)
 {
   size_t length;
-  const char* path = luaL_checklstring(L, 1, &length);
-  const char* ext = path + length;
+  const char* path;
+  const char* ext;
   const char* name;
+
+  path = luaL_checklstring(L, 1, &length);
+  ext = path + length;
   
   while (ext > path && *ext != '.' && *ext != '/' && *ext != '\\')
   {
@@ -134,12 +140,15 @@ int join_lua(lua_State* L)
 
 int scandir_lua(lua_State* L)
 {
-  const char* name = luaL_checkstring(L, 1);
-  DIR* dir = opendir( name );
+  const char* name;
+  DIR* dir;
   struct dirent* entry;
   int ndx;
 
-  if (dir)
+  name = luaL_checkstring(L, 1);
+  dir = opendir( name );
+
+  if (dir != NULL)
   {
     ndx = 1;
     
@@ -162,8 +171,10 @@ int scandir_lua(lua_State* L)
 
 static void pushtime(lua_State* L, time_t* time)
 {
-  struct tm* tm = gmtime(time);
+  struct tm* tm;
   char buf[256];
+
+  tm = gmtime(time);
 
   sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02dZ", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
   lua_pushstring(L, buf);
@@ -186,9 +197,11 @@ int stat_lua(lua_State* L)
     { S_IFIFO,  "fifo" },
   };
   
-  const char* name = luaL_checkstring(L, 1);
+  const char* name;
   struct stat buf;
   int i;
+
+  name = luaL_checkstring(L, 1);
   
   if (stat(name, &buf) == 0)
   {

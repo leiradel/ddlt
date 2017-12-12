@@ -5,11 +5,16 @@
 
 int newTemplate_lua(lua_State* L)
 {
-  size_t      length;
-  const char* source = luaL_checklstring(L, 1, &length);
-  
-  const char* current = source;
-  const char* end   = current + length;
+  size_t length;
+  const char* source;
+  const char* current;
+  const char* end;
+  const char* start;
+  const char* finish;
+
+  source = luaL_checklstring(L, 1, &length);
+  current = source;
+  end = current + length;
   
   luaL_Buffer code;
   luaL_buffinit(L, &code);
@@ -18,7 +23,7 @@ int newTemplate_lua(lua_State* L)
   
   for (;;)
   {
-    const char* start = current;
+    start = current;
     
     for (;;)
     {
@@ -40,7 +45,7 @@ int newTemplate_lua(lua_State* L)
       break;
     }
     
-    const char* finish = strstr(start + 2, "*/");
+    finish = strstr(start + 2, "*/");
     
     if (finish == NULL)
     {

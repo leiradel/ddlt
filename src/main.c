@@ -11,9 +11,11 @@
 
 static int main_lua(lua_State* L)
 {
-  int argc = lua_tointeger(L, lua_upvalueindex(1));
-  const char** argv = (const char**)lua_touserdata(L, lua_upvalueindex(2));
-  int i;
+  int i, argc;
+  const char** argv;
+
+  argc = lua_tointeger(L, lua_upvalueindex(1));
+  argv = (const char**)lua_touserdata(L, lua_upvalueindex(2));
   
   /* Load main.lua */
   if (luaL_loadbufferx(L, boot_lua, boot_lua_len, "boot.lua", "t" ) != LUA_OK)
@@ -66,10 +68,12 @@ static int open_lib(lua_State* L)
 
 int main(int argc, const char *argv[]) 
 {
-  lua_State* L = luaL_newstate();
+  lua_State* L;
   int top;
+
+  L = luaL_newstate();
   
-  if (L)
+  if (L != NULL)
   {
     top = lua_gettop(L);
     luaL_openlibs(L);

@@ -5,6 +5,10 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+typedef struct lexer_t lexer_t;
+
+typedef int (*next_t)(lua_State*, lexer_t*, int);
+
 typedef enum
 {
   LINE_COMMENT,
@@ -21,40 +25,35 @@ typedef struct
 }
 block_t;
 
-typedef struct
+struct lexer_t
 {
-  const char*   source_name;
-  unsigned      line;
-  const char*   source;
-  const char*   end;
+  const char* source_name;
+  unsigned    line;
+  const char* source;
+  const char* end;
 
-  int           last_char;
-  int           source_ref;
-  int           source_name_ref;
-  int           symbols_ref;
+  int         last_char;
+  int         source_ref;
+  int         source_name_ref;
+  int         symbols_ref;
 
-  lua_CFunction next;
-  block_t       blocks[8];
-  unsigned      num_blocks;
-}
-lexer_t;
+  next_t      next;
+  block_t     blocks[8];
+  unsigned    num_blocks;
+};
 
 #define ISSPACE(k)  (isspace((unsigned char)k))
 #define ISALPHA(k)  (k == '_' || isalpha((unsigned char)k))
 #define ISALNUM(k)  (k == '_' || isalnum((unsigned char)k))
 #define ISDIGIT(k)  (isdigit((unsigned char)k))
 #define ISXDIGIT(k) (isxdigit((unsigned char)k))
-#define ISODIGIT(k) (k >= '0' && k <= '9')
-
-#define GET(s) ((s)->source < (s)->end ? *(s)->source : -1)
+#define ISODIGIT(k) (k >= '0' && k <= '7')
 
 static int skip(lexer_t* self)
 {
   self->line += *self->source == '\n';
 
-  ptrdiff_t left = self->end - self->source;
-
-  if (left > 0)
+  if (self->end - self->source > 0)
   {
     return *self->source++;
   }
@@ -66,7 +65,9 @@ static int error(lua_State* L, const lexer_t* self, const char* format, ...)
 {
   va_list args;
   char buffer[1024];
-  int written = snprintf(buffer, sizeof(buffer), "%s:%d: ", self->source_name, self->line);
+  int written;
+  
+  written = snprintf(buffer, sizeof(buffer), "%s:%d: ", self->source_name, self->line);
 
   va_start(args, format);
   vsnprintf(buffer + written, sizeof(buffer) - written, format, args);
@@ -105,15 +106,115 @@ static int is_symbol(lua_State* L, const lexer_t* self, const char* lexeme, size
   return is_symbol;
 }
 
-static int next(lua_State* L, lexer_t* self)
+static int line_comment(lua_State* L, lexer_t* self, int k)
 {
+  if (k != '\n' && k != -1)
+  {
+    do
+    {
+      k = skip(self);
+    }
+    while (k != '\n' && k != -1);
+  }
+
+  self->last_char = skip(self);
+  return 0;
+}
+
+static int block_comment(lua_State* L, lexer_t* self, int k, const char* end)
+{
+  unsigned line;
+  const char* j;
+  const char* source;
+
+  if (k != -1)
+  {
+    do
+    {
+      if (k == *end)
+      {
+        line = self->line;
+        source = self->source;
+        j = end;
+
+        do
+        {
+          j++;
+          k = skip(self);
+        }
+        while (*j != 0 && *j == k);
+    
+        if (*j == 0)
+        {
+          self->last_char = k;
+          return 0;
+        }
+
+        self->line = line;
+        self->source = source;
+      }
+
+      k = skip(self);
+    }
+    while (k != -1);
+  }
+
+  error(L, self, "unterminated comment");
+  return 2;
+}
+
+static int free_form(lua_State* L, lexer_t* self, int k, const char* end)
+{
+  unsigned line;
+  const char* j;
+  const char* source;
+  const char* lexeme;
+  
+  lexeme = self->source - 1;
+
+  while (k != -1)
+  {
+    if (k == *end)
+    {
+      line = self->line;
+      source = self->source;
+      j = end;
+
+      do
+      {
+        j++;
+        k = skip(self);
+      }
+      while (*j != 0 && *j == k);
+  
+      if (*j == 0)
+      {
+        self->last_char = k;
+        return push(L, self, "<freeform>", 10, lexeme, self->source - lexeme - 3 + (k == -1));
+      }
+
+      self->line = line;
+      self->source = source;
+    }
+
+    k = skip(self);
+  }
+
+  return error(L, self, "unterminated free-form block");
+}
+
+static int l_next(lua_State* L)
+{
+  lexer_t* self;
   int k, save_k;
   unsigned i, line;
   const char* j;
   const char* source;
 
+  self = luaL_checkudata(L, 1, "lexer");
   luaL_checktype(L, 2, LUA_TTABLE);
 
+again:
   k = self->last_char;
 
   for (;;)
@@ -134,7 +235,7 @@ static int next(lua_State* L, lexer_t* self)
   {
     save_k = k;
     line = self->line;
-    const char* source = *self->source;
+    source = self->source;
     j = self->blocks[i].begin;
 
     while (*j != 0 && *j == k)
@@ -147,28 +248,45 @@ static int next(lua_State* L, lexer_t* self)
     {
       switch (self->blocks[i].type)
       {
-      case LINE_COMMENT:  return line_comment(L, self);
-      case BLOCK_COMMENT: return block_comment(L, self, self->blocks[i].end);
-      case FREE_FORMAT:   return free_format(L, self, self->blocks[i].end);
+      case LINE_COMMENT:
+        k = line_comment(L, self, k);
+        break;
+
+      case BLOCK_COMMENT:
+        k = block_comment(L, self, k, self->blocks[i].end);
+        break;
+
+      case FREE_FORMAT:
+        k = free_form(L, self, k, self->blocks[i].end);
+        break;
       }
+
+      if (k == 0)
+      {
+        goto again;
+      }
+
+      return k;
     }
 
     self->line = line;
     self->source = source;
     k = save_k;
   }
+
+  return self->next(L, self, k);
 }
 
 static int l_index(lua_State* L)
 {
-  lexer_t* self;
   size_t length;
-  const char* key = luaL_checklstring(L, 2, &length);
+  const char* key;
+  
+  key = luaL_checklstring(L, 2, &length);
 
   if (length == 4 && !strcmp(key, "next"))
   {
-    self = luaL_checkudata(L, 1, "lexer");
-    lua_pushcfunction(L, self->next);
+    lua_pushcfunction(L, l_next);
     return 1;
   }
 

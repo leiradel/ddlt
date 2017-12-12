@@ -1,5 +1,5 @@
 INCLUDES=-Isrc -Isrc/lua/src
-CFLAGS=-O3 -Wall
+CFLAGS=-O0 -g -Wall
 
 LUA=src/lua/src/lapi.o src/lua/src/lauxlib.o src/lua/src/lbaselib.o \
 	src/lua/src/lbitlib.o src/lua/src/lcode.o src/lua/src/lcorolib.o \

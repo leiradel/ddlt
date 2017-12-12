@@ -55,6 +55,8 @@ parse = function(file)
       if keywords[self.la.lexeme] then
          self.la.token = self.la.lexeme
       end
+
+      if self.la.token == '<decimal>' then self:next() end
     end,
 
     match = function(self, token)
