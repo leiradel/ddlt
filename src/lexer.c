@@ -7,7 +7,7 @@
 
 typedef struct lexer_t lexer_t;
 
-typedef int (*next_t)(lua_State*, lexer_t*, int);
+typedef int (*next_t)(lua_State*, lexer_t*);
 
 typedef enum
 {
@@ -106,8 +106,12 @@ static int is_symbol(lua_State* L, const lexer_t* self, const char* lexeme, size
   return is_symbol;
 }
 
-static int line_comment(lua_State* L, lexer_t* self, int k)
+static int line_comment(lua_State* L, lexer_t* self)
 {
+  int k;
+
+  k = self->last_char;
+
   if (k != '\n' && k != -1)
   {
     do
@@ -121,11 +125,14 @@ static int line_comment(lua_State* L, lexer_t* self, int k)
   return 0;
 }
 
-static int block_comment(lua_State* L, lexer_t* self, int k, const char* end)
+static int block_comment(lua_State* L, lexer_t* self, const char* end)
 {
+  int k;
   unsigned line;
   const char* j;
   const char* source;
+
+  k = self->last_char;
 
   if (k != -1)
   {
@@ -163,13 +170,15 @@ static int block_comment(lua_State* L, lexer_t* self, int k, const char* end)
   return 2;
 }
 
-static int free_form(lua_State* L, lexer_t* self, int k, const char* end)
+static int free_form(lua_State* L, lexer_t* self, const char* end)
 {
+  int k;
   unsigned line;
   const char* j;
   const char* source;
   const char* lexeme;
   
+  k = self->last_char;
   lexeme = self->source - 1;
 
   while (k != -1)
@@ -246,27 +255,31 @@ again:
 
     if (*j == 0)
     {
+      self->last_char = k;
+
       switch (self->blocks[i].type)
       {
       case LINE_COMMENT:
-        k = line_comment(L, self, k);
+        save_k = line_comment(L, self);
         break;
 
       case BLOCK_COMMENT:
-        k = block_comment(L, self, k, self->blocks[i].end);
+        save_k = block_comment(L, self, self->blocks[i].end);
         break;
 
       case FREE_FORMAT:
-        k = free_form(L, self, k, self->blocks[i].end);
+        save_k = free_form(L, self, self->blocks[i].end);
         break;
       }
 
-      if (k == 0)
+      k = self->last_char;
+
+      if (save_k == 0)
       {
         goto again;
       }
 
-      return k;
+      return save_k;
     }
 
     self->line = line;
@@ -274,7 +287,8 @@ again:
     k = save_k;
   }
 
-  return self->next(L, self, k);
+  self->last_char = k;
+  return self->next(L, self);
 }
 
 static int l_index(lua_State* L)

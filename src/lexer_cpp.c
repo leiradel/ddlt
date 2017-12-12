@@ -14,10 +14,12 @@ static void cpp_format_char(char* buffer, size_t size, int k)
   }
 }
 
-static int cpp_get_id(lua_State* L, lexer_t* self, int k)
+static int cpp_get_id(lua_State* L, lexer_t* self)
 {
+  int k;
   const char* lexeme;
   
+  k = self->last_char;
   lexeme = self->source - 1;
 
   do
@@ -30,16 +32,17 @@ static int cpp_get_id(lua_State* L, lexer_t* self, int k)
   return push(L, self, "<id>", 4, lexeme, self->source - lexeme - 1);
 }
 
-static int cpp_get_number(lua_State* L, lexer_t* self, int k)
+static int cpp_get_number(lua_State* L, lexer_t* self)
 {
+  int k, base;
   const char* lexeme;
-  int base;
   unsigned suffix;
   char c[8];
   size_t length;
 
-  lexeme = self->source - 1;
+  k = self->last_char;
   base = 10;
+  lexeme = self->source - 1;
   
   if (k == '0')
   {
@@ -190,11 +193,11 @@ static int cpp_get_number(lua_State* L, lexer_t* self, int k)
   return error(L, self, "internal error, base is %d", base);
 }
 
-static int cpp_get_string(lua_State* L, lexer_t* self, int k)
+static int cpp_get_string(lua_State* L, lexer_t* self)
 {
+  int k, i;
   const char* lexeme;
   char c[8];
-  int i;
 
   lexeme = self->source - 1;
   k = skip(self);
@@ -304,25 +307,28 @@ static int cpp_get_string(lua_State* L, lexer_t* self, int k)
   return push(L, self, "<string>", 8, lexeme, self->source - lexeme - 1);
 }
 
-static int cpp_next_lua(lua_State* L, lexer_t* self, int k)
+static int cpp_next_lua(lua_State* L, lexer_t* self)
 {
+  int k;
   const char* lexeme;
   size_t length;
   char c[8];
 
+  k = self->last_char;
+
   if (ISALPHA(k))
   {
-    return cpp_get_id(L, self, k);
+    return cpp_get_id(L, self);
   }
 
   if (ISDIGIT(k) || k == '.')
   {
-    return cpp_get_number(L, self, k);
+    return cpp_get_number(L, self);
   }
 
   if (k == '"')
   {
-    return cpp_get_string(L, self, k);
+    return cpp_get_string(L, self);
   }
 
   lexeme = self->source - 1;
