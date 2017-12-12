@@ -12,7 +12,7 @@ enum Weapons {
 
 /* The player */
 struct Hero {
-  string name = "Hero";
+  string name = "John \"Hero\" Doe";
   int health = 100;
   int armour = 0x0;
   float speed = 14.3;

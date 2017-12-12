@@ -25,7 +25,7 @@ local parse = function(file)
 
   repeat
     local la = {}
-    lexer:next(la)
+    assert(lexer:next(la))
     la.lexeme = la.lexeme:gsub('\n', '\\n')
     tokens[#tokens + 1] = la
     max = math.max(max, #la.token)

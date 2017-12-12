@@ -309,7 +309,15 @@ again:
   }
 
   self->last_char = save_k;
-  return self->next(L, self);
+  k = self->next(L, self);
+
+  if (k == 0)
+  {
+    k = self->last_char;
+    goto again;
+  }
+
+  return k;
 }
 
 static int l_index(lua_State* L)
@@ -338,6 +346,7 @@ static int l_gc(lua_State* L)
 }
 
 #include "lexer_cpp.c"
+#include "lexer_bas.c"
 
 int newLexer_lua(lua_State* L)
 {
@@ -394,6 +403,10 @@ int newLexer_lua(lua_State* L)
   if (language_length == 3 && !strcmp(language, "cpp"))
   {
     cpp_setup_lexer(self);
+  }
+  else if (language_length == 3 && !strcmp(language, "bas"))
+  {
+    bas_setup_lexer(self);
   }
   else
   {

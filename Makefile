@@ -23,7 +23,7 @@ ddlt: src/main.o src/lexer.o src/path.o src/templ.o src/realpath.o $(LUA)
 
 src/main.o: src/main.c src/lexer.h src/path.h src/templ.h src/boot_lua.h
 
-src/lexer.o: src/lexer.c src/lexer.h src/lexer_cpp.c
+src/lexer.o: src/lexer.c src/lexer.h src/lexer_cpp.c src/lexer_bas.c
 
 src/path.o: src/path.c src/path.h
 

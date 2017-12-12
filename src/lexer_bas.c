@@ -1,4 +1,4 @@
-static void format_char_bas(char* buffer, size_t size, int k)
+static void bas_format_char(char* buffer, size_t size, int k)
 {
   if (isprint(k))
   {
@@ -14,9 +14,13 @@ static void format_char_bas(char* buffer, size_t size, int k)
   }
 }
 
-static int get_id_bas(lua_State* L, lexer_t* self, int k)
+static int bas_get_id(lua_State* L, lexer_t* self)
 {
-  const char* lexeme = self->source - 1;
+  int k;
+  const char* lexeme;
+  size_t length;
+  
+  lexeme = self->source - 1;
 
   do
   {
@@ -25,36 +29,40 @@ static int get_id_bas(lua_State* L, lexer_t* self, int k)
   while (ISALNUM(k));
 
   self->last_char = k;
-  return push(L, self, "<id>", 4, lexeme, self->source - lexeme - 1);
+  length = self->source - lexeme - 1;
+
+  if (length == 3 && tolower(lexeme[0]) == 'r' && tolower(lexeme[1]) == 'e' && tolower(lexeme[2]) == 'm')
+  {
+    return line_comment(L, self);
+  }
+
+  return push(L, self, "<id>", 4, lexeme, length);
 }
 
-static int get_number_bas(lua_State* L, lexer_t* self, int k)
+static int bas_get_number(lua_State* L, lexer_t* self)
 {
-  const char* lexeme = self->source - 1;
-  int base = 10;
+  int k, base;
+  const char* lexeme;
+  unsigned suffix;
   char c[8];
   size_t length;
+
+  k = self->last_char;
+  base = 10;
+  lexeme = self->source - 1;
   
-  if (k != '0')
-  {
-    do
-    {
-      k = skip(self);
-    }
-    while (ISDIGIT(k));
-  }
-  else if (k != '.')
+  if (k == '&')
   {
     k = skip(self);
 
-    if (k == 'x' || k == 'X')
+    if (k == 'h' || k == 'H')
     {
       base = 16;
       k = skip(self);
 
       if (!ISXDIGIT(k))
       {
-        format_char_cpp(c, sizeof(c), k);
+        bas_format_char(c, sizeof(c), k);
         return error(L, self, "invalid digit %s in hexadecimal constant", c);
       }
 
@@ -64,27 +72,48 @@ static int get_number_bas(lua_State* L, lexer_t* self, int k)
       }
       while (ISXDIGIT(k));
     }
-    else
+    else if (k == 'o' || k == 'O')
     {
-      if (ISODIGIT(k))
+      base = 8;
+      k = skip(self);
+
+      if (!ISODIGIT(k))
       {
-        do
-        {
-          k = skip(self);
-        }
-        while (ISODIGIT(k));
+        bas_format_char(c, sizeof(c), k);
+        return error(L, self, "invalid digit %s in octal constant", c);
       }
 
-      if (ISDIGIT(k))
+      do
       {
-        return error(L, self, "invalid digit '%c' in octal constant", k);
+        k = skip(self);
       }
-
-      if (self->source - lexeme != 2)
-      {
-        base = 8;
-      }
+      while (ISODIGIT(k));
     }
+    else if (k == 'b' || k == 'B')
+    {
+      base = 2;
+      k = skip(self);
+
+      if (!ISBDIGIT(k))
+      {
+        bas_format_char(c, sizeof(c), k);
+        return error(L, self, "invalid digit %s in binary constant", c);
+      }
+
+      do
+      {
+        k = skip(self);
+      }
+      while (ISBDIGIT(k));
+    }
+  }
+  else if (k != '.')
+  {
+    do
+    {
+      k = skip(self);
+    }
+    while (ISDIGIT(k));
   }
 
   if (base == 10 && k == '.')
@@ -128,6 +157,8 @@ static int get_number_bas(lua_State* L, lexer_t* self, int k)
   {
     return error(L, self, "unsigned int must have 32 bits");
   }
+
+  suffix = 0;
   
   while (ISALPHA(k))
   {
@@ -140,8 +171,16 @@ static int get_number_bas(lua_State* L, lexer_t* self, int k)
     switch (suffix)
     {
     case 0:
+      if (k == '@' || k == '!' || k == '#')
+      {
+        k = skip(self);
+      }
+
+      break;
+      
     case 'f':
-    case 'l':
+    case 'r':
+    case 'd':
       break;
     
     default:
@@ -153,13 +192,19 @@ static int get_number_bas(lua_State* L, lexer_t* self, int k)
     switch (suffix)
     {
     case 0:
-    case 'u':
-    case 'u' <<  8 | 'l':
-    case 'u' << 16 | 'l' << 8 | 'l':
+      if (k == '%' || k == '&')
+      {
+        k = skip(self);
+      }
+
+      break;
+      
+    case 's':
+    case 'u' <<  8 | 's':
+    case 'i':
+    case 'u' <<  8 | 'i':
     case 'l':
-    case 'l' <<  8 | 'u':
-    case 'l' <<  8 | 'l':
-    case 'l' << 16 | 'l' << 8 | 'u':
+    case 'u' <<  8 | 'l':
       break;
     
     default:
@@ -173,6 +218,7 @@ static int get_number_bas(lua_State* L, lexer_t* self, int k)
   switch (base)
   {
   case 0:  return push(L, self, "<float>", 7, lexeme, length);
+  case 2:  return push(L, self, "<binary>", 8, lexeme, length);
   case 8:  return push(L, self, "<octal>", 7, lexeme, length);
   case 10: return push(L, self, "<decimal>", 9, lexeme, length);
   case 16: return push(L, self, "<hexadecimal>", 13, lexeme, length);
@@ -182,12 +228,12 @@ static int get_number_bas(lua_State* L, lexer_t* self, int k)
   return error(L, self, "internal error, base is %d", base);
 }
 
-static int get_string_cpp(lua_State* L, lexer_t* self, int k)
+static int bas_get_string(lua_State* L, lexer_t* self)
 {
-  const char* lexeme = self->source - 1;
-  char c[8];
-  int i;
-
+  int k;
+  const char* lexeme;
+  
+  lexeme = self->source - 1;
   k = skip(self);
 
   for (;;)
@@ -195,275 +241,69 @@ static int get_string_cpp(lua_State* L, lexer_t* self, int k)
     if (k == '"')
     {
       k = skip(self);
-      break;
+
+      if (k != '"')
+      {
+        break;
+      }
     }
     else if (k == -1)
     {
       return error(L, self, "unterminated string");
     }
-    else if (k == '\\')
-    {
-      k = skip(self);
-    
-      switch (k)
-      {
-      case 'a':
-      case 'b':
-      case 'f':
-      case 'n':
-      case 'r':
-      case 't':
-      case 'v':
-      case '\\':
-      case '\'':
-      case '"':
-      case '?':
-        k = skip(self);
-        continue;
-      
-      case 'x':
-        k = skip(self);
 
-        if (!ISXDIGIT(k))
-        {
-          return error(L, self, "\\x used with no following hex digits");
-        }
-    
-        do
-        {
-          k = skip(self);
-        }
-        while (ISXDIGIT(k));
-    
-        continue;
-      
-      case 'u':
-        for (i = 4; i != 0; i--)
-        {
-          k = skip(self);
-
-          if (!ISXDIGIT(k))
-          {
-            return error(L, self, "\\u needs 4 hexadecimal digits");
-          }
-        }
-    
-        k = skip(self);
-        continue;
-            
-      case 'U':
-        for (i = 8; i != 0; i--)
-        {
-          k = skip(self);
-
-          if (!ISXDIGIT(k))
-          {
-            return error(L, self, "\\U needs 8 hexadecimal digits");
-          }
-        }
-    
-        k = skip(self);
-        continue;
-      
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-        do
-        {
-          k = skip(self);
-        }
-        while (ISODIGIT(k));
-
-        continue;
-      }
-    
-      format_char_cpp(c, sizeof(c), k);
-      return error(L, self, "unknown escape sequence: %s", c);
-    }
-    else
-    {
-      k = skip(self);
-    }
+    k = skip(self);
   }
 
   self->last_char = k;
   return push(L, self, "<string>", 8, lexeme, self->source - lexeme - 1);
 }
 
-static int free_form_cpp(lua_State* L, lexer_t* self)
-{
-  const char* lexeme = self->source - 1;
-  int k;
-
-  skip(self);
-  skip(self);
-  
-  do
-  {
-    k = skip(self);
-
-    while (k != '}')
-    {
-      if (k == -1)
-      {
-        return error(L, self, "unterminated free-form block");
-      }
-
-      k = skip(self);
-    }
-
-    k = skip(self);
-  }
-  while (k != ']');
-
-  self->last_char = skip(self);
-  return push(L, self, "<freeform>", 10, lexeme, self->source - lexeme - 1);
-}
-
-static void line_comment_cpp(lua_State* L, lexer_t* self)
+static int bas_next_lua(lua_State* L, lexer_t* self)
 {
   int k;
-
-  skip(self);
-  skip(self);
-  
-  do
-  {
-    k = skip(self);
-  }
-  while (k != '\n' && k != -1);
-
-  self->last_char = skip(self);
-}
-
-static void block_comment_cpp(lua_State* L, lexer_t* self)
-{
-  int k;
-
-  skip(self);
-  skip(self);
-  
-  do
-  {
-    k = skip(self);
-
-    while (k != '*')
-    {
-      if (k == -1)
-      {
-        error(L, self, "unterminated comment");
-        return;
-      }
-
-      k = skip(self);
-    }
-
-    k = skip(self);
-  }
-  while (k != '/');
-
-  self->last_char = skip(self);
-}
-
-static int l_next_cpp(lua_State* L)
-{
-  lexer_t* self;
-  int k;
-  const char* lexeme;
-  size_t length;
   char c[8];
-
-  self = luaL_checkudata(L, 1, "lexer");
-  luaL_checktype(L, 2, LUA_TTABLE);
-  
-again:
 
   k = self->last_char;
 
-  for (;;)
-  {
-    if (k == -1)
-    {
-      return push(L, self, "<eof>", 5, "<eof>", 5);
-    }
-    else if (!ISSPACE(k))
-    {
-      break;
-    }
-
-    k = skip(self);
-  }
-
   if (ISALPHA(k))
   {
-    return get_id_bas(L, self, k);
+    return bas_get_id(L, self);
   }
 
-  if (ISDIGIT(k))
+  if (ISDIGIT(k) || k == '.')
   {
-    return get_number_bas(L, self, k);
+    return bas_get_number(L, self);
   }
 
-  if (k == '&')
+  if (k == '&' && self->end - self->source >= 1)
   {
-    switch (GET(self))
+    k = *self->source;
+
+    if (k == 'h' || k == 'H' || k == 'o' || k == 'O' || k == 'b' || k == 'B')
     {
-    case 'h':
-    case 'H':
-    case 'o':
-    case 'O':
-    case 'b':
-    case 'B':
-      return get_number_bas(L, self, k);
+      return bas_get_number(L, self);
     }
+
+    k = self->last_char;
   }
 
   if (k == '"')
   {
-    return get_string_cpp(L, self, k);
+    return bas_get_string(L, self);
   }
 
-  lexeme = self->source - 1;
-
-  if (self->end - lexeme >= 2)
-  {
-    if (lexeme[0] == '[' && lexeme[1] == '{')
-    {
-      return free_form_cpp(L, self);
-    }
-
-    if (lexeme[0] == '/' && lexeme[1] == '/')
-    {
-      line_comment_cpp(L, self);
-      goto again;
-    }
-
-    if (lexeme[0] == '/' && lexeme[1] == '*')
-    {
-      block_comment_cpp(L, self);
-      goto again;
-    }
-  }
-
-  length = 1;
-
-  while (is_symbol(L, self, lexeme, length))
-  {
-    k = skip(self);
-    length++;
-  }
-
-  if (length > 1)
-  {
-    self->last_char = k;
-    return push(L, self, lexeme, length - 1, lexeme, length - 1);
-  }
-
-  format_char_cpp(c, sizeof(c), k);
+  bas_format_char(c, sizeof(c), k);
   return error(L, self, "Invalid character in input: %s", c);
+}
+
+static void bas_setup_lexer(lexer_t* self)
+{
+  self->next = bas_next_lua;
+  self->blocks[0].begin = "'";
+  self->blocks[0].type = LINE_COMMENT;
+  self->blocks[1].begin = "[{";
+  self->blocks[1].end = "}]";
+  self->blocks[1].type = FREE_FORMAT;
+  self->num_blocks = 2;
 }

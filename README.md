@@ -1,6 +1,43 @@
 # ddlt
 
-**ddlt** is a generic, C-like lexer to help write parsers using [Lua](https://www.lua.org/).
+**ddlt** is a generic lexer to help write parsers using [Lua](https://www.lua.org/). It includes a tokenizer capable of recognizing **C++** and **BASIC** comments, identifiers, and number and string literals. A template engine is also included to easy the development of transpilers.
+
+The tokenizer recognizes:
+
+* **C++**
+  * Line comments from `//` to the end of the line.
+  * Block comments from `/*` to `*/`. Nested comments are *not* supported.
+  * Identifiers in the form `[A-Za-z_][A-Za-z_0-9]*`.
+  * Numbers in the form:
+    * `0x[0-9A-Fa-f]+` as hexadecimal literals
+    * `[0-9]+` as decimal literals
+    * `0[0-7]+` as octal literals
+    * `[0-9]*\.[0-9]+([Ee][+-]?[0-9]+)?` as float literals
+    * `[0-9]+\.[0-9]*([Ee][+-]?[0-9]+)?` as float literals
+    * `[0-9]+[Ee][+-]?[0-9]+` as float literals
+    * Integer literals can be suffixed with `u`, `ul`, `ull`, `l`, `lu`, `ll`, or `llu`, in either lower and upper case
+    * Float literals can be suffixed with `f` or `l`, in either lower and upper case
+  * Strings, including the following [escape sequences](https://en.wikipedia.org/wiki/Escape_sequences_in_C):
+    * `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\\`, `\'`, `\"`, `\?`
+    * `\x` followed by at least one hexadecimal digit
+    * `\u` followed by exactly four hexadecimal digits
+    * `\U` followed by exactly eight hexadecimal digits
+    * A `\` followed by at least one octal digit
+* **BASIC**
+  * Line comments from `'` to the end of the line.
+  * Line comments from `REM`, independent of case, to the end of the line.
+  * Identifiers in the form `[A-Za-z_][A-Za-z_0-9]*`.
+  * Numbers in the form:
+    * `&[Bb][0-9A-Fa-f]+` as binary literals
+    * `&[Oo][0-9A-Fa-f]+` as octal literals
+    * `&[Hh][0-9A-Fa-f]+` as hexadecimal literals
+    * `[0-9]+` as decimal literals
+    * `[0-9]*\.[0-9]+([Ee][+-]?[0-9]+)?` as float literals
+    * `[0-9]+\.[0-9]*([Ee][+-]?[0-9]+)?` as float literals
+    * `[0-9]+[Ee][+-]?[0-9]+` as float literals
+    * Integer literals can be suffixed with `%`, `&`, `s`, `us`, `i`, `ui`, `l`, or `ul`, in either lower and upper case
+    * Float literals can be suffixed with `@`, `!`, `#`, `f`, `r`, or `d`, in either lower and upper case
+  * Strings, where `""` is interpreted as a single quote inside the string.
 
 ## Build
 
@@ -157,7 +194,7 @@ line =  22 token = ;             lexeme = ;
 line =  22 token = <eof>         lexeme = <eof>
 ```
 
-See `example/test.lua` for a simple generator written using **ddlt**.
+See `example/test_cpp.lua` and `example/test_bas.lua` for simple generators written using **ddlt**.
 
 ## Documentation
 
@@ -177,13 +214,14 @@ Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require
 * `source`: a string with the entire source code that will be tokenized.
 * `file`: a string with the name of the object used to create the source code (usually the file name from where the source code was read, this is used for error messages).
 * `isSymbol`: a function which takes a lexeme and must return `true` if that lexeme is a valid symbol.
-* `language`: a string containing the language used to parse identifiers, string and number literals, and comments. The only supported language for now is `'cpp'`.
+* `language`: a string containing the language used to parse identifiers, string and number literals, and comments. Supported languages are `'cpp'` for **C++**, and `'bas'` for **BASIC**.
 
 The resulting object only has one method, `next`. It takes a table where the information of the next produced token is stored:
 
 * `token`: a string describing the lookahead. It can be:
   * `<id>` when the lookahead is an identifier
   * `<float>` when it's a floating point literal
+  * `<binary>` when it's a binary literal (**BASIC** only)
   * `<octal>` when it's an octal literal
   * `<decimal>` when it's a decimal literal
   * `<hexadecimal>` when it's a hexadecimal literal
