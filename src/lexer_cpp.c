@@ -16,120 +16,87 @@ static void cpp_format_char(char* buffer, size_t size, int k)
 
 static int cpp_get_id(lua_State* L, lexer_t* self)
 {
-  int k;
   const char* lexeme;
   
-  lexeme = self->source - 1;
-
-  do
-  {
-    k = skip(self);
-  }
-  while (ISALNUM(k));
-
-  self->last_char = k;
-  return push(L, self, "<id>", 4, lexeme, self->source - lexeme - 1);
+  lexeme = self->source;
+  while (ISALNUM(*self->source)) self->source++;
+  return push(L, self, "<id>", 4, lexeme, self->source - lexeme);
 }
 
 static int cpp_get_number(lua_State* L, lexer_t* self)
 {
-  int k, base;
+  int base;
   const char* lexeme;
   unsigned suffix;
   char c[8];
   size_t length;
 
-  k = self->last_char;
+  lexeme = self->source;
   base = 10;
-  lexeme = self->source - 1;
   
-  if (k == '0')
+  if (*self->source == '0')
   {
-    k = skip(self);
+    self->source++;
 
-    if (k == 'x' || k == 'X')
+    if (*self->source == 'x' || *self->source == 'X')
     {
+      self->source++;
       base = 16;
-      k = skip(self);
 
-      if (!ISXDIGIT(k))
+      if (!ISXDIGIT(*self->source))
       {
-        cpp_format_char(c, sizeof(c), k);
+        cpp_format_char(c, sizeof(c), *self->source);
         return error(L, self, "invalid digit %s in hexadecimal constant", c);
       }
 
-      do
-      {
-        k = skip(self);
-      }
-      while (ISXDIGIT(k));
+      self->source++;
+      while (ISXDIGIT(*self->source)) self->source++;
     }
     else
     {
-      if (ISODIGIT(k))
+      while (ISODIGIT(*self->source)) self->source++;
+
+      if (ISDIGIT(*self->source))
       {
-        do
-        {
-          k = skip(self);
-        }
-        while (ISODIGIT(k));
+        return error(L, self, "invalid digit '%c' in octal constant", *self->source);
       }
 
-      if (ISDIGIT(k))
-      {
-        return error(L, self, "invalid digit '%c' in octal constant", k);
-      }
-
-      if (self->source - lexeme != 2)
+      if (self->source - lexeme != 1)
       {
         base = 8;
       }
     }
   }
-  else if (k != '.')
+  else if (*self->source != '.')
   {
-    do
-    {
-      k = skip(self);
-    }
-    while (ISDIGIT(k));
+    self->source++;
+    while (ISDIGIT(*self->source)) self->source++;
   }
 
-  if (base == 10 && k == '.')
+  if (base == 10 && *self->source == '.')
   {
+    self->source++;
     base = 0; /* indicates a floating point constant */
-    k = skip(self);
-
-    if (ISDIGIT(k))
-    {
-      do
-      {
-        k = skip(self);
-      }
-      while (ISDIGIT(k));
-    }
+    while (ISDIGIT(*self->source)) self->source++;
   }
 
-  if ((base == 10 || base == 0) && (k == 'e' || k == 'E'))
+  if ((base == 10 || base == 0) && (*self->source == 'e' || *self->source == 'E'))
   {
+    self->source++;
     base = 0;
-    k = skip(self);
 
-    if (k == '+' || k == '-')
+    if (*self->source == '+' || *self->source == '-')
     {
-      k = skip(self);
+      self->source++;
     }
 
-    if (!ISDIGIT(k))
+    if (!ISDIGIT(*self->source))
     {
       return error(L, self, "exponent has no digits");
     }
 
-    do
-    {
-      k = skip(self);
-    }
-    while (ISDIGIT(k));
+    self->source++;
+    while (ISDIGIT(*self->source)) self->source++;
   }
 
   if (sizeof(suffix) < 4)
@@ -139,10 +106,10 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
 
   suffix = 0;
   
-  while (ISALPHA(k))
+  while (ISALPHA(*self->source))
   {
-    suffix = suffix << 8 | tolower(k);
-    k = skip(self);
+    suffix = suffix << 8 | tolower(*self->source);
+    self->source++;
   }
   
   if (base == 0)
@@ -177,8 +144,7 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
     }
   }
 
-  self->last_char = k;
-  length = self->source - lexeme - 1;
+  length = self->source - lexeme;
 
   switch (base)
   {
@@ -194,29 +160,31 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
 
 static int cpp_get_string(lua_State* L, lexer_t* self)
 {
-  int k, i;
   const char* lexeme;
+  char reject[3];
+  int i;
   char c[8];
 
-  lexeme = self->source - 1;
-  k = skip(self);
+  lexeme = self->source++;
+
+  reject[0] = '"';
+  reject[1] = '\\';
+  reject[2] = 0;
 
   for (;;)
   {
-    if (k == '"')
+    self->source += strcspn(self->source, reject);
+
+    if (*self->source == '"')
     {
-      k = skip(self);
+      self->source++;
       break;
     }
-    else if (k == -1)
+    else if (*self->source == '\\')
     {
-      return error(L, self, "unterminated string");
-    }
-    else if (k == '\\')
-    {
-      k = skip(self);
-    
-      switch (k)
+      self->source++;
+
+      switch (*self->source++)
       {
       case 'a':
       case 'b':
@@ -229,51 +197,38 @@ static int cpp_get_string(lua_State* L, lexer_t* self)
       case '\'':
       case '"':
       case '?':
-        k = skip(self);
         continue;
       
       case 'x':
-        k = skip(self);
-
-        if (!ISXDIGIT(k))
+        if (!ISXDIGIT(*self->source))
         {
           return error(L, self, "\\x used with no following hex digits");
         }
     
-        do
-        {
-          k = skip(self);
-        }
-        while (ISXDIGIT(k));
-    
+        self->source++;
+        while (ISXDIGIT(*self->source)) self->source++;
         continue;
       
       case 'u':
-        for (i = 4; i != 0; i--)
+        for (i = 4; i != 0; i--, self->source++)
         {
-          k = skip(self);
-
-          if (!ISXDIGIT(k))
+          if (!ISXDIGIT(*self->source))
           {
             return error(L, self, "\\u needs 4 hexadecimal digits");
           }
         }
     
-        k = skip(self);
         continue;
             
       case 'U':
-        for (i = 8; i != 0; i--)
+        for (i = 8; i != 0; i--, self->source++)
         {
-          k = skip(self);
-
-          if (!ISXDIGIT(k))
+          if (!ISXDIGIT(*self->source))
           {
             return error(L, self, "\\U needs 8 hexadecimal digits");
           }
         }
     
-        k = skip(self);
         continue;
       
       case '0':
@@ -284,51 +239,42 @@ static int cpp_get_string(lua_State* L, lexer_t* self)
       case '5':
       case '6':
       case '7':
-        do
-        {
-          k = skip(self);
-        }
-        while (ISODIGIT(k));
-
+        while (ISODIGIT(*self->source)) self->source++;
         continue;
       }
     
-      cpp_format_char(c, sizeof(c), k);
+      cpp_format_char(c, sizeof(c), self->source[-1]);
       return error(L, self, "unknown escape sequence: %s", c);
     }
     else
     {
-      k = skip(self);
+      return error(L, self, "unterminated string");
     }
   }
 
-  self->last_char = k;
-  return push(L, self, "<string>", 8, lexeme, self->source - lexeme - 1);
+  return push(L, self, "<string>", 8, lexeme, self->source - lexeme);
 }
 
 static int cpp_next_lua(lua_State* L, lexer_t* self)
 {
-  int k;
   char c[8];
 
-  k = self->last_char;
-
-  if (ISALPHA(k))
+  if (ISALPHA(*self->source))
   {
     return cpp_get_id(L, self);
   }
 
-  if (ISDIGIT(k) || k == '.')
+  if (ISDIGIT(*self->source) || *self->source == '.')
   {
     return cpp_get_number(L, self);
   }
 
-  if (k == '"')
+  if (*self->source == '"')
   {
     return cpp_get_string(L, self);
   }
 
-  cpp_format_char(c, sizeof(c), k);
+  cpp_format_char(c, sizeof(c), *self->source);
   return error(L, self, "Invalid character in input: %s", c);
 }
 
