@@ -266,8 +266,9 @@ again:
 
   if (i > 0)
   {
+    begin = self->source;
     self->source += i;
-    return push(L, self, self->source, i, self->source, i);
+    return push(L, self, begin, i, begin, i);
   }
 
   j = self->next(L, self);
