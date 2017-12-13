@@ -20,8 +20,7 @@ static int bas_get_id(lua_State* L, lexer_t* self)
   size_t length;
   
   lexeme = self->source;
-  while (ISALNUM(*self->source)) self->source++;
-
+  self->source += strspn(self->source, ALNUM);
   length = self->source - lexeme;
 
   if (length == 3 && tolower(lexeme[0]) == 'r' && tolower(lexeme[1]) == 'e' && tolower(lexeme[2]) == 'm')
@@ -51,56 +50,55 @@ static int bas_get_number(lua_State* L, lexer_t* self)
     {
       self->source++;
       base = 16;
+      length = strspn(self->source, XDIGIT);
 
-      if (!ISXDIGIT(*self->source))
+      if (length == 0)
       {
         bas_format_char(c, sizeof(c), *self->source);
         return error(L, self, "invalid digit %s in hexadecimal constant", c);
       }
 
-      self->source++;
-      while (ISXDIGIT(*self->source)) self->source++;
+      self->source += length;
     }
     else if (*self->source == 'o' || *self->source == 'O')
     {
       self->source++;
       base = 8;
+      length = strspn(self->source, ODIGIT);
 
-      if (!ISODIGIT(*self->source))
+      if (length == 0)
       {
         bas_format_char(c, sizeof(c), *self->source);
         return error(L, self, "invalid digit %s in octal constant", c);
       }
 
-      self->source++;
-      while (ISODIGIT(*self->source)) self->source++;
+      self->source += length;
     }
     else if (*self->source == 'b' || *self->source == 'B')
     {
       self->source++;
       base = 2;
+      length = strspn(self->source, BDIGIT);
 
-      if (!ISBDIGIT(*self->source))
+      if (length == 0)
       {
         bas_format_char(c, sizeof(c), *self->source);
         return error(L, self, "invalid digit %s in binary constant", c);
       }
 
-      self->source++;
-      while (ISBDIGIT(*self->source)) self->source++;
+      self->source += length;
     }
   }
   else if (*self->source != '.')
   {
-    self->source++;
-    while (ISDIGIT(*self->source)) self->source++;
+    self->source += strspn(self->source, DIGIT);
   }
 
   if (base == 10 && *self->source == '.')
   {
     self->source++;
+    self->source += strspn(self->source, DIGIT);
     base = 0; /* indicates a floating point constant */
-    while (ISDIGIT(*self->source)) self->source++;
   }
 
   if ((base == 10 || base == 0) && (*self->source == 'e' || *self->source == 'E'))
@@ -113,13 +111,14 @@ static int bas_get_number(lua_State* L, lexer_t* self)
       self->source++;
     }
 
-    if (!ISDIGIT(*self->source))
+    length = strspn(self->source + 1, DIGIT);
+
+    if (length == 0)
     {
       return error(L, self, "exponent has no digits");
     }
 
-    self->source++;
-    while (ISDIGIT(*self->source)) self->source++;
+    self->source += length;
   }
 
   if (sizeof(suffix) < 4)

@@ -19,7 +19,7 @@ static int cpp_get_id(lua_State* L, lexer_t* self)
   const char* lexeme;
   
   lexeme = self->source;
-  while (ISALNUM(*self->source)) self->source++;
+  self->source += strspn(self->source, ALNUM);
   return push(L, self, "<id>", 4, lexeme, self->source - lexeme);
 }
 
@@ -42,26 +42,28 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
     {
       self->source++;
       base = 16;
+      length = strspn(self->source, XDIGIT);
 
-      if (!ISXDIGIT(*self->source))
+      if (length == 0)
       {
         cpp_format_char(c, sizeof(c), *self->source);
         return error(L, self, "invalid digit %s in hexadecimal constant", c);
       }
 
-      self->source++;
-      while (ISXDIGIT(*self->source)) self->source++;
+      self->source += length;
     }
     else
     {
-      while (ISODIGIT(*self->source)) self->source++;
+      length = strspn(self->source, ODIGIT);
 
-      if (ISDIGIT(*self->source))
+      if (ISDIGIT(self->source[length]))
       {
         return error(L, self, "invalid digit '%c' in octal constant", *self->source);
       }
 
-      if (self->source - lexeme != 1)
+      self->source += length;
+
+      if (length != 1)
       {
         base = 8;
       }
@@ -69,15 +71,14 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
   }
   else if (*self->source != '.')
   {
-    self->source++;
-    while (ISDIGIT(*self->source)) self->source++;
+    self->source += strspn(self->source, DIGIT);
   }
 
   if (base == 10 && *self->source == '.')
   {
     self->source++;
+    self->source += strspn(self->source, DIGIT);
     base = 0; /* indicates a floating point constant */
-    while (ISDIGIT(*self->source)) self->source++;
   }
 
   if ((base == 10 || base == 0) && (*self->source == 'e' || *self->source == 'E'))
@@ -90,13 +91,14 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
       self->source++;
     }
 
-    if (!ISDIGIT(*self->source))
+    length = strspn(self->source + 1, DIGIT);
+
+    if (length == 0)
     {
       return error(L, self, "exponent has no digits");
     }
 
-    self->source++;
-    while (ISDIGIT(*self->source)) self->source++;
+    self->source += length;
   }
 
   if (sizeof(suffix) < 4)
@@ -162,7 +164,7 @@ static int cpp_get_string(lua_State* L, lexer_t* self)
 {
   const char* lexeme;
   char reject[3];
-  int i;
+  size_t length;
   char c[8];
 
   lexeme = self->source++;
@@ -200,35 +202,36 @@ static int cpp_get_string(lua_State* L, lexer_t* self)
         continue;
       
       case 'x':
-        if (!ISXDIGIT(*self->source))
+        length = strspn(self->source, XDIGIT);
+
+        if (length == 0)
         {
           return error(L, self, "\\x used with no following hex digits");
         }
     
-        self->source++;
-        while (ISXDIGIT(*self->source)) self->source++;
+        self->source += length;
         continue;
       
       case 'u':
-        for (i = 4; i != 0; i--, self->source++)
+        length = strspn(self->source, XDIGIT);
+
+        if (length != 4)
         {
-          if (!ISXDIGIT(*self->source))
-          {
-            return error(L, self, "\\u needs 4 hexadecimal digits");
-          }
+          return error(L, self, "\\u needs 4 hexadecimal digits");
         }
     
+        self->source += length;
         continue;
             
       case 'U':
-        for (i = 8; i != 0; i--, self->source++)
+        length = strspn(self->source, XDIGIT);
+
+        if (length != 8)
         {
-          if (!ISXDIGIT(*self->source))
-          {
-            return error(L, self, "\\U needs 8 hexadecimal digits");
-          }
+          return error(L, self, "\\u needs 4 hexadecimal digits");
         }
     
+        self->source += length;
         continue;
       
       case '0':
@@ -239,7 +242,7 @@ static int cpp_get_string(lua_State* L, lexer_t* self)
       case '5':
       case '6':
       case '7':
-        while (ISODIGIT(*self->source)) self->source++;
+        self->source += strspn(self->source, ODIGIT);
         continue;
       }
     

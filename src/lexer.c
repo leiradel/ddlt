@@ -40,13 +40,16 @@ struct lexer_t
   unsigned    num_blocks;
 };
 
-#define ISSPACE(k)  (isspace((unsigned char)k))
-#define ISALPHA(k)  (k == '_' || isalpha((unsigned char)k))
-#define ISALNUM(k)  (k == '_' || isalnum((unsigned char)k))
-#define ISDIGIT(k)  (isdigit((unsigned char)k))
-#define ISXDIGIT(k) (isxdigit((unsigned char)k))
-#define ISODIGIT(k) (k >= '0' && k <= '7')
-#define ISBDIGIT(k) (k == '0' || k == '1')
+#define ISALPHA(k) (isalpha((unsigned char)k) || k == '_')
+#define ISDIGIT(k) (isdigit((unsigned char)k))
+
+#define SPACE  " \f\r\t\v"
+#define ALPHA  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
+#define DIGIT  "0123456789"
+#define ALNUM  ALPHA DIGIT
+#define XDIGIT DIGIT "ABCDEFabcdef"
+#define ODIGIT "01234567"
+#define BDIGIT "01"
 
 static int error(lua_State* L, const lexer_t* self, const char* format, ...)
 {
@@ -199,7 +202,7 @@ static int free_form(lua_State* L, lexer_t* self, const char* end)
 static int l_next(lua_State* L)
 {
   lexer_t* self;
-  unsigned i, j;
+  unsigned i;
   const char* begin;
 
   self = luaL_checkudata(L, 1, "lexer");
@@ -208,49 +211,47 @@ static int l_next(lua_State* L)
 again:
   for (;;)
   {
+    self->source += strspn(self->source, SPACE);
+
     if (*self->source == 0)
     {
       return push(L, self, "<eof>", 5, "<eof>", 5);
     }
-    else if (!ISSPACE(*self->source))
+    else if (*self->source == '\n')
+    {
+      self->source++;
+      self->line++;
+    }
+    else
     {
       break;
     }
-
-    self->line += *self->source == '\n';
-    self->source++;
   }
 
   for (i = 0; i < self->num_blocks; i++)
   {
     begin = self->blocks[i].begin;
-    j = 0;
 
-    while (begin[j] != 0 && self->source[j] == begin[j])
-    {
-      j++;
-    }
-
-    if (begin[j] == 0)
+    if (!strncmp(self->source, begin, strlen(begin)))
     {
       switch (self->blocks[i].type)
       {
       case LINE_COMMENT:
-        j = line_comment(L, self);
+        i = line_comment(L, self);
         break;
 
       case BLOCK_COMMENT:
-        j = block_comment(L, self, self->blocks[i].end);
+        i = block_comment(L, self, self->blocks[i].end);
         break;
 
       case FREE_FORMAT:
-        j = free_form(L, self, self->blocks[i].end);
+        i = free_form(L, self, self->blocks[i].end);
         break;
       }
 
-      if (j != 0)
+      if (i != 0)
       {
-        return j;
+        return i;
       }
 
       goto again;
@@ -271,11 +272,11 @@ again:
     return push(L, self, begin, i, begin, i);
   }
 
-  j = self->next(L, self);
+  i = self->next(L, self);
 
-  if (j != 0)
+  if (i != 0)
   {
-    return j;
+    return i;
   }
 
   goto again;
