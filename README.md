@@ -28,8 +28,8 @@ The tokenizer recognizes:
   * Line comments from `REM`, independent of case, to the end of the line.
   * Identifiers in the form `[A-Za-z_][A-Za-z_0-9]*`.
   * Numbers in the form:
-    * `&[Bb][0-9A-Fa-f]+` as binary literals
-    * `&[Oo][0-9A-Fa-f]+` as octal literals
+    * `&[Bb][01]+` as binary literals
+    * `&[Oo][0-7]+` as octal literals
     * `&[Hh][0-9A-Fa-f]+` as hexadecimal literals
     * `[0-9]+` as decimal literals
     * `[0-9]*\.[0-9]+([Ee][+-]?[0-9]+)?` as float literals
