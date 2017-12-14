@@ -5,15 +5,12 @@ local parse = function(file)
   local source = inp:read('*a')
   inp:close()
 
-  local symbols = {
-    ['='] = true
-  }
-
   local lexer = ddlt.newLexer{
     source = source,
     file = file,
     language = 'bas',
-    isSymbol = function(lexeme) return symbols[lexeme] end
+    isSymbol = function(lexeme) return false end,
+    freeform = {'[{', '}]'}
   }
 
   local tokens = {}
