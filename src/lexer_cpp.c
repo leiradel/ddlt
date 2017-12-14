@@ -290,8 +290,5 @@ static void cpp_setup_lexer(lexer_t* self)
   self->blocks[1].begin = "/*";
   self->blocks[1].end = "*/";
   self->blocks[1].type = BLOCK_COMMENT;
-  self->blocks[2].begin = "[{";
-  self->blocks[2].end = "}]";
-  self->blocks[2].type = FREE_FORMAT;
-  self->num_blocks = 3;
+  self->num_blocks = 2;
 }

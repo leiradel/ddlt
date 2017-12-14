@@ -262,8 +262,5 @@ static void bas_setup_lexer(lexer_t* self)
   self->next = bas_next_lua;
   self->blocks[0].begin = "'";
   self->blocks[0].type = LINE_COMMENT;
-  self->blocks[1].begin = "[{";
-  self->blocks[1].end = "}]";
-  self->blocks[1].type = FREE_FORMAT;
-  self->num_blocks = 2;
+  self->num_blocks = 1;
 }
