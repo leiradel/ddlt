@@ -1,6 +1,6 @@
 static void cpp_format_char(char* buffer, size_t size, int k)
 {
-  if (isprint(k))
+  if (isprint(k) && k != '\'')
   {
     snprintf(buffer, size, "'%c'", k);
   }
@@ -56,7 +56,7 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
     {
       length = strspn(self->source, ODIGIT);
 
-      if (ISDIGIT(self->source[length]))
+      if (strspn(self->source + length, DIGIT) != 0)
       {
         return error(L, self, "invalid digit '%c' in octal constant", *self->source);
       }
@@ -106,9 +106,10 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
     return error(L, self, "unsigned int must have 32 bits");
   }
 
+  length = strspn(self->source, "FLUflu");
   suffix = 0;
   
-  while (ISALPHA(*self->source))
+  while (length-- != 0)
   {
     suffix = suffix << 8 | tolower(*self->source);
     self->source++;
@@ -262,12 +263,12 @@ static int cpp_next_lua(lua_State* L, lexer_t* self)
 {
   char c[8];
 
-  if (ISALPHA(*self->source))
+  if (strspn(self->source, ALPHA) != 0)
   {
     return cpp_get_id(L, self);
   }
 
-  if (ISDIGIT(*self->source) || *self->source == '.')
+  if (strspn(self->source, DIGIT ".") != 0)
   {
     return cpp_get_number(L, self);
   }

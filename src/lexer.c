@@ -40,9 +40,6 @@ struct lexer_t
   unsigned    num_blocks;
 };
 
-#define ISALPHA(k) (isalpha((unsigned char)k) || k == '_')
-#define ISDIGIT(k) (isdigit((unsigned char)k))
-
 #define SPACE  " \f\r\t\v"
 #define ALPHA  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
 #define DIGIT  "0123456789"

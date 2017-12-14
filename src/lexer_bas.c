@@ -1,6 +1,6 @@
 static void bas_format_char(char* buffer, size_t size, int k)
 {
-  if (isprint(k))
+  if (isprint(k) && k != '\'')
   {
     snprintf(buffer, size, "'%c'", k);
   }
@@ -126,9 +126,10 @@ static int bas_get_number(lua_State* L, lexer_t* self)
     return error(L, self, "unsigned int must have 32 bits");
   }
 
+  length = strspn(self->source, "FRDfrd@!#SUILsuil%&");
   suffix = 0;
   
-  while (ISALPHA(*self->source))
+  while (length-- != 0)
   {
     suffix = suffix << 8 | tolower(*self->source);
     self->source++;
@@ -139,16 +140,12 @@ static int bas_get_number(lua_State* L, lexer_t* self)
     switch (suffix)
     {
     case 0:
-      if (*self->source == '@' || *self->source == '!' || *self->source == '#')
-      {
-        self->source++;
-      }
-
-      break;
-      
     case 'f':
     case 'r':
     case 'd':
+    case '@':
+    case '!':
+    case '#':
       break;
     
     default:
@@ -160,19 +157,14 @@ static int bas_get_number(lua_State* L, lexer_t* self)
     switch (suffix)
     {
     case 0:
-      if (*self->source == '%' || *self->source == '&')
-      {
-        self->source++;
-      }
-
-      break;
-      
     case 's':
     case 'u' <<  8 | 's':
     case 'i':
     case 'u' <<  8 | 'i':
     case 'l':
     case 'u' <<  8 | 'l':
+    case '%':
+    case '&':
       break;
     
     default:
@@ -226,12 +218,12 @@ static int bas_next_lua(lua_State* L, lexer_t* self)
   int k;
   char c[8];
 
-  if (ISALPHA(*self->source))
+  if (strspn(self->source, ALPHA) != 0)
   {
     return bas_get_id(L, self);
   }
 
-  if (ISDIGIT(*self->source) || *self->source == '.')
+  if (strspn(self->source, DIGIT ".") != 0)
   {
     return bas_get_number(L, self);
   }
