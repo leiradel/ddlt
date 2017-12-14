@@ -110,11 +110,13 @@ static int line_comment(lua_State* L, lexer_t* self)
 static int block_comment(lua_State* L, lexer_t* self, const char* end)
 {
   char reject[3];
-  int i;
+  size_t end_len;
 
   reject[0] = '\n';
   reject[1] = *end;
   reject[2] = 0;
+
+  end_len = strlen(end) - 1;
 
   for (;;)
   {
@@ -127,21 +129,13 @@ static int block_comment(lua_State* L, lexer_t* self, const char* end)
     }
     else if (*self->source == *end)
     {
-      i = 0;
+      self->source++;
 
-      do
+      if (!strncmp(self->source, end + 1, end_len))
       {
-        i++;
-      }
-      while (end[i] != 0 && self->source[i] == end[i]);
-
-      if (end[i] == 0)
-      {
-        self->source += i;
+        self->source += end_len;
         return 0;
       }
-
-      self->source++;
     }
     else
     {
@@ -154,13 +148,15 @@ static int free_form(lua_State* L, lexer_t* self, const char* end)
 {
   const char* lexeme;
   char reject[3];
-  int i;
+  size_t end_len;
 
   lexeme = self->source;
 
   reject[0] = '\n';
   reject[1] = *end;
   reject[2] = 0;
+
+  end_len = strlen(end) - 1;
 
   for (;;)
   {
@@ -173,21 +169,13 @@ static int free_form(lua_State* L, lexer_t* self, const char* end)
     }
     else if (*self->source == *end)
     {
-      i = 0;
+      self->source++;
 
-      do
+      if (!strncmp(self->source, end + 1, end_len))
       {
-        i++;
-      }
-      while (end[i] != 0 && self->source[i] == end[i]);
-
-      if (end[i] == 0)
-      {
-        self->source += i;
+        self->source += end_len;
         return push(L, self, "<freeform>", 10, lexeme, self->source - lexeme);
       }
-
-      self->source++;
     }
     else
     {
