@@ -2,14 +2,15 @@ local ddlt = require 'ddlt'
 
 local function usage(out)
   out:write[[
-ddlt: a generic, C-like lexer to help write parsers using Lua
+ddlt: a generic lexer that helps writing parsers using Lua
 Copyright 2017 Andre Leiradella @leiradel
+https://github.com/leiradel/ddlt
+Version 1.0
 
 Usage: ddlt <parser.lua> [args...]
 
 ddlt runs the Lua script given as its first argument, and executes the
-function returned by that script. All arguments but the first are passed to
-that function.
+function returned by that script.
 ]]
 end
 

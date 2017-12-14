@@ -262,3 +262,9 @@ As an example, if you use `/*` and `*/` as delimiters:
 * `/*! ... */` causes `...` to be executed as Lua code
 
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
+
+## Changelog
+
+### 1.0.0
+
+* First proper release
