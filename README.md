@@ -251,7 +251,7 @@ The resulting object only has one method, `next`. It takes a table where the inf
   * `<string>` when it's a string literal
   * `<eof>` when there are no more tokens in the source code
   * A symbol, as identified via the `isSymbol` function
-  * A keyword enclosed in square brackets
+  * A keyword, as identified in the `keywords` array when provided
 * `lexeme`: a string with the value of the token as found in the source code
 * `line`: the line number where the token is in the source code
 
@@ -262,10 +262,10 @@ The resulting object only has one method, `next`. It takes a table where the inf
 Templates can be used to make it easier to generate code. The `newTemplate` method accepts three of four arguments:
 
 * `newTemplate(code, open_tag, close_tag, name)`
-  * The template source code.
-  * The open tag that delimits special template instructions.
-  * The close tag.
-  * An optional template name, which is used in error messages. `"template"` is used if this argument is not provided.
+  * `code`: the template source code
+  * `open_tag`: the open tag that delimits special template instructions
+  * `close_tag`: the close tag
+  * `name`: an optional template name, which is used in error messages; `"template"` is used if this argument is not provided
 
 There are two template instructions, one to emit content to the output, and another to execute arbitrary Lua code. To emit content, use the open tag followed by `=`. To execute code, use the open tag followed by `!`.
 
