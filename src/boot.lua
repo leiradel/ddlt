@@ -26,29 +26,35 @@ return function(args)
   local newLexer = ddlt.newLexer
 
   ddlt.newLexer = function(options)
-    if not options.isSymbol and options.symbols then
+    local newopts = {}
+
+    for option, value in pairs(options) do
+      newopts[option] = value
+    end
+
+    if not newopts.isSymbol and newopts.symbols then
       local symbols = {}
 
-      for i = 1, #options.symbols do
-        symbols[options.symbols[i]] = true
+      for i = 1, #newopts.symbols do
+        symbols[newopts.symbols[i]] = true
       end
 
-      options.isSymbol = function(symbol)
+      newopts.isSymbol = function(symbol)
         return symbols[symbol]
       end
     end
 
-    local lexer, err = newLexer(options)
+    local lexer, err = newLexer(newopts)
 
     if not lexer then
       return nil, err
     end
 
-    if options.keywords then
+    if newopts.keywords then
       local keywords = {}
 
-      for i = 1, #options.keywords do
-        keywords[options.keywords[i]] = true
+      for i = 1, #newopts.keywords do
+        keywords[newopts.keywords[i]] = true
       end
 
       return {
