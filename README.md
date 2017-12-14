@@ -39,7 +39,7 @@ The tokenizer recognizes:
     * Float literals can be suffixed with `@`, `!`, `#`, `f`, `r`, or `d`, in either lower and upper case
   * Strings, where `""` is interpreted as a single quote inside the string.
 
-The tokenizer can also recognize and return *freeform* blocks, using user-defined delimiters which can have any content inside these delimiters.
+The tokenizer can also recognize and return *freeform* blocks, using user-defined delimiters, and which can have any content inside these delimiters.
 
 ## Build
 
@@ -146,7 +146,7 @@ struct Hero {
 the result will be
 
 ```
-line =   2 token = [enum]        lexeme = enum
+line =   2 token = enum          lexeme = enum
 line =   2 token = <id>          lexeme = Weapons
 line =   2 token = {             lexeme = {
 line =   3 token = <id>          lexeme = kFist
@@ -166,25 +166,25 @@ line =   9 token = ,             lexeme = ,
 line =  10 token = <id>          lexeme = kBFG9000
 line =  11 token = }             lexeme = }
 line =  11 token = ;             lexeme = ;
-line =  14 token = [struct]      lexeme = struct
+line =  14 token = struct        lexeme = struct
 line =  14 token = <id>          lexeme = Hero
 line =  14 token = {             lexeme = {
-line =  15 token = [string]      lexeme = string
+line =  15 token = string        lexeme = string
 line =  15 token = <id>          lexeme = name
 line =  15 token = =             lexeme = =
 line =  15 token = <string>      lexeme = "John \"Hero\" Doe"
 line =  15 token = ;             lexeme = ;
-line =  16 token = [int]         lexeme = int
+line =  16 token = int           lexeme = int
 line =  16 token = <id>          lexeme = health
 line =  16 token = =             lexeme = =
 line =  16 token = <decimal>     lexeme = 100
 line =  16 token = ;             lexeme = ;
-line =  17 token = [int]         lexeme = int
+line =  17 token = int           lexeme = int
 line =  17 token = <id>          lexeme = armour
 line =  17 token = =             lexeme = =
 line =  17 token = <hexadecimal> lexeme = 0x0
 line =  17 token = ;             lexeme = ;
-line =  18 token = [float]       lexeme = float
+line =  18 token = float         lexeme = float
 line =  18 token = <id>          lexeme = speed
 line =  18 token = =             lexeme = =
 line =  18 token = <float>       lexeme = 14.3
@@ -223,8 +223,7 @@ Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require
 Optionally, the table can have these fields:
 
 * `symbols`: an array of valid symbols, which will be used to automatically provide an `isSymbol` function to the tokenizer.
-* `keywords`: an array of valid keywords, which will be returned instead of the generic `<id>` token.
-  * Keyword tokens will be returned enclosed in square brackets to avoid confusion with other tokens, i.e. if a `string` keyword is defined, it will be returned with the `[string]` token to make it different from the `<string>` one which identifies a string literal
+* `keywords`: an array of valid keywords, which will then be returned instead of the generic `<id>` token.
 
 The resulting object only has one method, `next`. It takes a table where the information of the next produced token is stored:
 
@@ -264,6 +263,10 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 1.1.0
+
+* Removed square brackets from keywords
 
 ### 1.0.0
 

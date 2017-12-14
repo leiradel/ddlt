@@ -5,7 +5,7 @@ local function usage(out)
 ddlt: a generic lexer that helps writing parsers using Lua
 Copyright 2017 Andre Leiradella @leiradel
 https://github.com/leiradel/ddlt
-Version 1.0
+Version 1.1
 
 Usage: ddlt <parser.lua> [args...]
 
@@ -67,7 +67,7 @@ return function(args)
           end
 
           if la.token == '<id>' and keywords[la.lexeme] then
-            la.token = string.format('[%s]', la.lexeme)
+            la.token = la.lexeme
           end
 
           return la
