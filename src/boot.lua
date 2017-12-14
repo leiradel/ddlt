@@ -1,3 +1,5 @@
+local ddlt = require 'ddlt'
+
 local function usage(out)
   out:write[[
 ddlt: a generic, C-like lexer to help write parsers using Lua
@@ -17,7 +19,8 @@ return function(args)
     os.exit(1)
   end
 
+  args[1] = ddlt.realpath(args[1])
+
   local main = assert(loadfile(args[1], 't'))()
-  table.remove(args, 1)
   main(args)
 end
