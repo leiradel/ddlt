@@ -44,8 +44,7 @@ return function(args)
   local res = {}
   local tokens = parse(args[1])
 
-  local templ = ddlt.newTemplate(template)
-  templ = assert(load(templ, 'template'))()
+  local templ = assert(ddlt.newTemplate(template))
   templ(tokens, function(out) res[#res + 1] = out end)
 
   res = table.concat(res):gsub('\n+', '\n')

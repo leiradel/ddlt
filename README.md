@@ -104,9 +104,7 @@ return function(args)
 
   local res = {}
   local tokens = parse(args[1])
-  local templ = ddlt.newTemplate(template)
-  templ = assert(load(templ, 'template'))()
-  templ(tokens, function(out) res[#res + 1] = out end)
+  local templ = assert(ddlt.newTemplate(template))
 
   res = table.concat(res):gsub('\n+', '\n')
   io.write(res)
@@ -205,7 +203,7 @@ Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require
 * `entries = scandir(path)`: returns a table with all the entries in the specified path
 * `info = stat(path)`: returns a table with information about the object at path, as returned by [stat](https://linux.die.net/man/2/stat) containing `size`, `atime`, `mtime`, `ctime`, `sock`, `link`, `file`, `block`, `dir`, `char`, and `fifo`
 * `lexer = newLexer(options)`: returns a new tokenizer (see below)
-* `template = newTemplate(source)`: returns a compiled template (see below)
+* `template = newTemplate(source, chunkname)`: returns a function that, when called, will execute the template (see below)
 
 ### newLexer
 
@@ -242,4 +240,4 @@ Templates can be used to make it easier to generate code. The template engine us
 * `/*= ... */` causes `...` to be generated in the output
 * `/*! ... */` causes `...` to be executed as Lua code
 
-`newTemplate` accepts annotated code and returns a string containing Lua source code that will tun the template when executed. This function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit` a function which must output all the arguments passed to it as a vararg.
+`newTemplate` accepts annotated code and returns a string containing Lua source code that will tun the template when executed. This function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg. `newTemplate` optionally takes a second parameter which is the chunk name for the template, which will be used in error messages in case the template has syntax or runtime errors.
