@@ -39,6 +39,8 @@ The tokenizer recognizes:
     * Float literals can be suffixed with `@`, `!`, `#`, `f`, `r`, or `d`, in either lower and upper case
   * Strings, where `""` is interpreted as a single quote inside the string.
 
+The tokenizer can also recognize and return *freeform* blocks, using user-defined delimiters which can have any content inside these delimiters.
+
 ## Build
 
 `make` should do the job.
@@ -71,7 +73,9 @@ local parse = function(file)
     source = source,
     file = file,
     language = 'cpp',
-    isSymbol = function(lexeme) return #lexeme == 1 end
+    symbols = {'{', '}', ',', ';', '='},
+    keywords = {'enum', 'struct', 'string', 'int', 'float'},
+    freeform = {'[{', '}]'}
   }
 
   local tokens = {}
@@ -79,7 +83,7 @@ local parse = function(file)
 
   repeat
     local la = {}
-    lexer:next(la)
+    assert(lexer:next(la))
     la.lexeme = la.lexeme:gsub('\n', '\\n')
     tokens[#tokens + 1] = la
     max = math.max(max, #la.token)
@@ -98,13 +102,14 @@ line = /*= string.format('%3d', la.line) */ token = /*= string.format(tkfmt, la.
 ]]
 
 return function(args)
-  if #args ~= 1 then
+  if #args ~= 2 then
     error('missing input file\n')
   end
 
   local res = {}
-  local tokens = parse(args[1])
-  local templ = assert(ddlt.newTemplate(template))
+  local tokens = parse(args[2])
+  local templ = assert(ddlt.newTemplate(template, '/*', '*/'))
+  templ(tokens, function(out) res[#res + 1] = out end)
 
   res = table.concat(res):gsub('\n+', '\n')
   io.write(res)
@@ -128,7 +133,7 @@ enum Weapons {
 
 /* The player */
 struct Hero {
-  string name = "Hero";
+  string name = "John \"Hero\" Doe";
   int health = 100;
   int armour = 0x0;
   float speed = 14.3;
@@ -141,7 +146,7 @@ struct Hero {
 the result will be
 
 ```
-line =   2 token = <id>          lexeme = enum
+line =   2 token = [enum]        lexeme = enum
 line =   2 token = <id>          lexeme = Weapons
 line =   2 token = {             lexeme = {
 line =   3 token = <id>          lexeme = kFist
@@ -161,38 +166,38 @@ line =   9 token = ,             lexeme = ,
 line =  10 token = <id>          lexeme = kBFG9000
 line =  11 token = }             lexeme = }
 line =  11 token = ;             lexeme = ;
-line =  14 token = <id>          lexeme = struct
+line =  14 token = [struct]      lexeme = struct
 line =  14 token = <id>          lexeme = Hero
 line =  14 token = {             lexeme = {
-line =  15 token = <id>          lexeme = string
+line =  15 token = [string]      lexeme = string
 line =  15 token = <id>          lexeme = name
 line =  15 token = =             lexeme = =
-line =  15 token = <string>      lexeme = "Hero"
+line =  15 token = <string>      lexeme = "John \"Hero\" Doe"
 line =  15 token = ;             lexeme = ;
-line =  16 token = <id>          lexeme = int
+line =  16 token = [int]         lexeme = int
 line =  16 token = <id>          lexeme = health
 line =  16 token = =             lexeme = =
 line =  16 token = <decimal>     lexeme = 100
 line =  16 token = ;             lexeme = ;
-line =  17 token = <id>          lexeme = int
+line =  17 token = [int]         lexeme = int
 line =  17 token = <id>          lexeme = armour
 line =  17 token = =             lexeme = =
 line =  17 token = <hexadecimal> lexeme = 0x0
 line =  17 token = ;             lexeme = ;
-line =  18 token = <id>          lexeme = float
+line =  18 token = [float]       lexeme = float
 line =  18 token = <id>          lexeme = speed
 line =  18 token = =             lexeme = =
 line =  18 token = <float>       lexeme = 14.3
 line =  18 token = ;             lexeme = ;
 line =  19 token = <id>          lexeme = isAlive
 line =  19 token = =             lexeme = =
-line =  21 token = <freeform>    lexeme = \n    return true;\n  
+line =  21 token = <freeform>    lexeme = [{\n    return true;\n  }]
 line =  22 token = }             lexeme = }
 line =  22 token = ;             lexeme = ;
-line =  22 token = <eof>         lexeme = <eof>
+line =  23 token = <eof>         lexeme = <eof>
 ```
 
-See `example/test_cpp.lua` and `example/test_bas.lua` for simple generators written using **ddlt**.
+See the `example` folder for unit tests and a simple generator written using **ddlt**.
 
 ## Documentation
 
@@ -203,7 +208,7 @@ Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require
 * `entries = scandir(path)`: returns a table with all the entries in the specified path
 * `info = stat(path)`: returns a table with information about the object at path, as returned by [stat](https://linux.die.net/man/2/stat) containing `size`, `atime`, `mtime`, `ctime`, `sock`, `link`, `file`, `block`, `dir`, `char`, and `fifo`
 * `lexer = newLexer(options)`: returns a new tokenizer (see below)
-* `template = newTemplate(source, chunkname)`: returns a function that, when called, will execute the template (see below)
+* `template = newTemplate(code, open_tag, close_tag, name)`: returns a function that, when called, will execute the template (see below)
 
 ### newLexer
 
@@ -213,6 +218,13 @@ Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require
 * `file`: a string with the name of the object used to create the source code (usually the file name from where the source code was read, this is used for error messages).
 * `isSymbol`: a function which takes a lexeme and must return `true` if that lexeme is a valid symbol.
 * `language`: a string containing the language used to parse identifiers, string and number literals, and comments. Supported languages are `'cpp'` for **C++**, and `'bas'` for **BASIC**.
+* `freeform`: an array with two elements, the *freeform* delimiters to recognize freeform blocks.
+
+Optionally, the table can have these fields:
+
+* `symbols`: an array of valid symbols, which will be used to automatically provide an `isSymbol` function to the tokenizer.
+* `keywords`: an array of valid keywords, which will be returned instead of the generic `<id>` token.
+  * Keyword tokens will be returned enclosed in square brackets to avoid confusion with other tokens, i.e. if a `string` keyword is defined, it will be returned with the `[string]` token to make it different from the `<string>` one which identifies a string literal
 
 The resulting object only has one method, `next`. It takes a table where the information of the next produced token is stored:
 
@@ -226,18 +238,27 @@ The resulting object only has one method, `next`. It takes a table where the inf
   * `<string>` when it's a string literal
   * `<eof>` when there are no more tokens in the source code
   * A symbol, as identified via the `isSymbol` function
+  * A keyword enclosed in square brackets
 * `lexeme`: a string with the value of the token as found in the source code
 * `line`: the line number where the token is in the source code
 
 `next` will also return the same table passed to it as an argument if successful. In case of errors, it will return `nil`, plus a string describing the error. The error message will always be in the format `<file>:<line>: message`, which is the standard way to describe errors in compilers.
 
-Care has been taken to correctly recognize C strings, including all escape sequences, identifiers, number literals, and comments, both line and block.
-
 ### newTemplate
 
-Templates can be used to make it easier to generate code. The template engine used in **ddlt** uses C comments to drive the code generation:
+Templates can be used to make it easier to generate code. The `newTemplate` method accepts three of four arguments:
+
+* `newTemplate(code, open_tag, close_tag, name)`
+  * The template source code.
+  * The open tag that delimits special template instructions.
+  * The close tag.
+  * An optional template name, which is used in error messages. `"template"` is used if this argument is not provided.
+
+There are two template instructions, one to emit content to the output, and another to execute arbitrary Lua code. To emit content, use the open tag followed by `=`. To execute code, use the open tag followed by `!`.
+
+As an example, if you use `/*` and `*/` as delimiters:
 
 * `/*= ... */` causes `...` to be generated in the output
 * `/*! ... */` causes `...` to be executed as Lua code
 
-`newTemplate` accepts annotated code and returns a string containing Lua source code that will tun the template when executed. This function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg. `newTemplate` optionally takes a second parameter which is the chunk name for the template, which will be used in error messages in case the template has syntax or runtime errors.
+The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
