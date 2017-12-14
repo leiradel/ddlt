@@ -30,10 +30,10 @@ end
 
 local template = [===[
 local expected = {
-/*! for i = 1, #args do */
-/*!  local la = args[ i ] */
-  {line = /*= la.line */, token = [[/*= la.token */]], lexeme = [[/*= la.lexeme */]]},
-/*! end */
+--[[! for i = 1, #args do ]]
+--[[!  local la = args[ i ] ]]
+  {line = --[[= la.line ]], token = [[--[[= la.token ]]]], lexeme = [[--[[= la.lexeme ]]]]},
+--[[! end ]]
 }
 ]===]
   
@@ -44,7 +44,7 @@ return function(args)
 
   local res = {}
   local tokens = parse(args[2])
-  local templ = assert(ddlt.newTemplate(template))
+  local templ = assert(ddlt.newTemplate(template, '--[[', ']]'))
   templ(tokens, function(out) res[#res + 1] = out end)
 
   res = table.concat(res):gsub('\n+', '\n')

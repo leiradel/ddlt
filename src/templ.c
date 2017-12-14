@@ -24,6 +24,10 @@ int l_newTemplate(lua_State* L)
   const char* source;
   const char* current;
   const char* end;
+  size_t open_length;
+  const char* open_tag;
+  size_t close_length;
+  const char* close_tag;
   const char* chunkname;
   luaL_Buffer code;
   const char* start;
@@ -34,7 +38,9 @@ int l_newTemplate(lua_State* L)
   current = source;
   end = current + length;
 
-  chunkname = luaL_optstring(L, 2, "template");
+  open_tag = luaL_checklstring(L, 2, &open_length);
+  close_tag = luaL_checklstring(L, 3, &close_length);
+  chunkname = luaL_optstring(L, 4, "template");
   
   luaL_buffinit(L, &code);
   luaL_addstring(&code, "return function(args, emit); ");
@@ -45,9 +51,9 @@ int l_newTemplate(lua_State* L)
     
     for (;;)
     {
-      start = strstr(start, "/*");
+      start = strstr(start, open_tag);
 
-      if (start == NULL || start[2] == '=' || start[2] == '!')
+      if (start == NULL || start[open_length] == '=' || start[open_length] == '!')
       {
         break;
       }
@@ -63,7 +69,7 @@ int l_newTemplate(lua_State* L)
       break;
     }
     
-    finish = strstr(start + 2, "*/");
+    finish = strstr(start + open_length + 1, close_tag);
     
     if (finish == NULL)
     {
@@ -82,19 +88,21 @@ int l_newTemplate(lua_State* L)
     luaL_addlstring(&code, current, start - current);
     luaL_addstring(&code, "]===] ");
     
-    if (start[2] == '=')
+    if (start[open_length] == '=')
     {
+      start += open_length + 1;
       luaL_addstring(&code, "emit(tostring(");
-      luaL_addlstring(&code, start + 3, finish - 1 - (start + 3) + 1);
+      luaL_addlstring(&code, start, finish - start);
       luaL_addstring(&code, ")) ");
     }
     else
     {
-      luaL_addlstring(&code, start + 3, finish - 1 - (start + 3) + 1);
+      start += open_length + 1;
+      luaL_addlstring(&code, start, finish - start);
       luaL_addchar(&code, ' ');
     }
     
-    current = finish + 2;
+    current = finish + close_length;
   }
   
   luaL_addstring(&code, "end\n");
