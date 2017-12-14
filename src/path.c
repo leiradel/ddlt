@@ -205,13 +205,13 @@ int l_stat(lua_State* L)
   
   if (stat(name, &buf) == 0)
   {
-    if (lua_type(L, 1) == LUA_TTABLE)
+    if (lua_istable(L, 1))
     {
       lua_pushvalue(L, 1);
     }
     else
     {
-      lua_createtable(L, 0, 5);
+      lua_createtable(L, 0, 4 + sizeof(modes) / sizeof(modes[0]));
     }
     
     lua_pushinteger(L, buf.st_size);

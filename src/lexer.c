@@ -301,7 +301,7 @@ int l_newLexer(lua_State* L)
   size_t length;
   const char* language;
 
-  if (lua_type(L, 1) != LUA_TTABLE)
+  if (!lua_istable(L, 1))
   {
     return luaL_error(L, "lexer options must be a table");
   }
@@ -310,28 +310,28 @@ int l_newLexer(lua_State* L)
 
   lua_getfield(L, 1, "source");
 
-  if (lua_type(L, -1) != LUA_TSTRING)
+  if (!lua_isstring(L, -1))
   {
     return luaL_error(L, "source must be a string");
   }
 
   lua_getfield(L, 1, "file");
 
-  if (lua_type(L, -1) != LUA_TSTRING)
+  if (!lua_isstring(L, -1))
   {
     return luaL_error(L, "file name must be a string");
   }
 
   lua_getfield(L, 1, "isSymbol");
 
-  if (lua_type(L, -1) != LUA_TFUNCTION)
+  if (!lua_isfunction(L, -1))
   {
     return luaL_error(L, "isSymbol must be a function");
   }
 
   lua_getfield(L, 1, "language");
 
-  if (lua_type(L, -1) != LUA_TSTRING)
+  if (!lua_isstring(L, -1))
   {
     return luaL_error(L, "language name must be a string");
   }
