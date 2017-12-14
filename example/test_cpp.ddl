@@ -1,22 +1,8 @@
-// The weapons available in the game
-enum Weapons {
-  kFist,
-  kChainsaw,
-  kPistol,
-  kShotgun,
-  kChaingun,
-  kRocketLauncher,
-  kPlasmaGun,
-  kBFG9000
-};
-
-/* The player */
-struct Hero {
-  string name = "John \"Hero\" Doe";
-  int health = 100;
-  int armour = 0x0;
-  float speed = 14.3;
-  isAlive = [{
-    return true;
-  }]
-};
+// Line comment
+/* Block comment */
+/* Block comment
+spawning multiple
+lines */
+id Id iD ID _id id_ _
+0 0xabcd 0xABCD 0123 123 1. .1 1.1 1.f .1f 1.1f 1.e1 .1e1 1.1e1 1.e1f .1e1f 1.1e1f 1.l 1u 1ul 1ull 1l 1lu 1llu 1ULL
+"" "\"" "\a\b\f\n\r\t\v\\\'\"\?\xab\xAB\uabcd\uABCD\U0123abcd\U0123ABCD\033"
