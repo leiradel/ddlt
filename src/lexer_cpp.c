@@ -63,7 +63,7 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
 
       self->source += length;
 
-      if (length != 1)
+      if (length != 0)
       {
         base = 8;
       }
@@ -91,7 +91,7 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
       self->source++;
     }
 
-    length = strspn(self->source + 1, DIGIT);
+    length = strspn(self->source, DIGIT);
 
     if (length == 0)
     {
