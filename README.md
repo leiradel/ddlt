@@ -1,6 +1,6 @@
 # ddlt
 
-**ddlt** is a generic lexer to help write parsers using [Lua](https://www.lua.org/). It includes a tokenizer capable of recognizing **C++** and **BASIC** comments, identifiers, and number and string literals. A template engine is also included to easy the development of transpilers.
+**ddlt** is a generic lexer to help write parsers using [Lua](https://www.lua.org/). It includes a tokenizer capable of recognizing **C++**, **BASIC**, and **Pascal** comments, identifiers, and number and string literals. A template engine is also included to easy the development of transpilers.
 
 The tokenizer recognizes:
 
@@ -38,6 +38,19 @@ The tokenizer recognizes:
     * Integer literals can be suffixed with `%`, `&`, `s`, `us`, `i`, `ui`, `l`, or `ul`, in either lower and upper case
     * Float literals can be suffixed with `@`, `!`, `#`, `f`, `r`, or `d`, in either lower and upper case
   * Strings, where `""` is interpreted as a single quote inside the string.
+* **Pascal**
+  * Line comments from `//` to the end of the line.
+  * Block comments from `(*` to `*)`. Nested comments are *not* supported.
+  * Block comments from `{` to `}`. Nested comments are *not* supported.
+  * Numbers in the form:
+    * `$[0-9a-fA-F]+` as hexadecimal literals
+    * `&[0-9a-fA-F]+` as octal literals
+    * `%[0-9a-fA-F]+` as binary literals
+    * `[0-9]+` as decimal literals
+    * `[0-9]+\.[0-9]+` as float literals
+    * `[0-9]+[Ee][+-]?[0-9]+` as float literals
+    * `[0-9]+\.[0-9]+[Ee][+-]?[0-9]+` as float literals
+  * Strings, where `#[0-9]+` can appear anywhere outside the single quotes to denote a character corresponding to the given number, i.e. `#65'B'` is equivalent to `'AB'`.
 
 The tokenizer can also recognize and return *freeform* blocks, using user-defined delimiters, and which can have any content inside these delimiters.
 
@@ -49,14 +62,15 @@ The tokenizer can also recognize and return *freeform* blocks, using user-define
 
 ```
 $ ./ddlt
-ddlt: a generic, C-like lexer to help write parsers using Lua
+ddlt: a generic lexer that helps writing parsers using Lua
 Copyright 2017 Andre Leiradella @leiradel
+https://github.com/leiradel/ddlt
+Version 1.2
 
 Usage: ddlt <parser.lua> [args...]
 
 ddlt runs the Lua script given as its first argument, and executes the
-function returned by that script. All arguments but the first are passed to
-that function.
+function returned by that script.
 ```
 
 If your parser code is
@@ -217,7 +231,7 @@ Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require
 * `source`: a string with the entire source code that will be tokenized.
 * `file`: a string with the name of the object used to create the source code (usually the file name from where the source code was read, this is used for error messages).
 * `isSymbol`: a function which takes a lexeme and must return `true` if that lexeme is a valid symbol.
-* `language`: a string containing the language used to parse identifiers, string and number literals, and comments. Supported languages are `'cpp'` for **C++**, and `'bas'` for **BASIC**.
+* `language`: a string containing the language used to parse identifiers, string and number literals, and comments. Supported languages are `'cpp'` for **C++**, `'bas'` for **BASIC**, and `'pas'` for **Pascal**.
 * `freeform`: an array with two elements, the *freeform* delimiters to recognize freeform blocks.
 
 Optionally, the table can have these fields:
@@ -263,6 +277,10 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 1.2.0
+
+* Added support for Pascal
 
 ### 1.1.0
 

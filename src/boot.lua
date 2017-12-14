@@ -5,7 +5,7 @@ local function usage(out)
 ddlt: a generic lexer that helps writing parsers using Lua
 Copyright 2017 Andre Leiradella @leiradel
 https://github.com/leiradel/ddlt
-Version 1.1
+Version 1.2
 
 Usage: ddlt <parser.lua> [args...]
 

@@ -297,6 +297,7 @@ static int l_gc(lua_State* L)
 
 #include "lexer_cpp.c"
 #include "lexer_bas.c"
+#include "lexer_pas.c"
 
 int l_newLexer(lua_State* L)
 {
@@ -363,6 +364,10 @@ int l_newLexer(lua_State* L)
     else if (!strcmp(language, "bas"))
     {
       bas_setup_lexer(self);
+    }
+    else if (!strcmp(language, "pas"))
+    {
+      pas_setup_lexer(self);
     }
     else
     {
