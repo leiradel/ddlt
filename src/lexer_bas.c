@@ -111,7 +111,7 @@ static int bas_get_number(lua_State* L, lexer_t* self)
       self->source++;
     }
 
-    length = strspn(self->source + 1, DIGIT);
+    length = strspn(self->source, DIGIT);
 
     if (length == 0)
     {
@@ -165,6 +165,16 @@ static int bas_get_number(lua_State* L, lexer_t* self)
     case 'u' <<  8 | 'l':
     case '%':
     case '&':
+      break;
+    
+    case 'f':
+    case 'r':
+    case 'd':
+    case '@':
+    case '!':
+    case '#':
+      /* also include float suffixes, in this case the number is a float */
+      base = 0;
       break;
     
     default:
