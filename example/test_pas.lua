@@ -50,6 +50,7 @@ return function(args)
   res = table.concat(res):gsub('\n+', '\n')
   io.write(res)
 
+  -- inception
   local expected = {
     {line = 13, token = [[<freeform>]], lexeme = [=[[{\n  Free\n  form\n  block\n}]]=]},
     {line = 15, token = [[<id>]], lexeme = [[id]]},
