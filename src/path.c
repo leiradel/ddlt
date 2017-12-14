@@ -18,7 +18,7 @@ char __cdecl* realpath(const char* __restrict__ name, char* __restrict__ resolve
 #define PATH_SEPARATOR '/'
 #endif
 
-int realpath_lua(lua_State* L)
+int l_realpath(lua_State* L)
 {
   const char* path;
   char buffer[_MAX_PATH];
@@ -48,7 +48,7 @@ int realpath_lua(lua_State* L)
   return 2;
 }
 
-int split_lua(lua_State* L)
+int l_split(lua_State* L)
 {
   size_t length;
   const char* path;
@@ -103,7 +103,7 @@ int split_lua(lua_State* L)
   return 3;
 }
 
-int join_lua(lua_State* L)
+int l_join(lua_State* L)
 {
   size_t path_length, name_length, ext_length;
   const char* path;
@@ -138,7 +138,7 @@ int join_lua(lua_State* L)
   return 1;
 }
 
-int scandir_lua(lua_State* L)
+int l_scandir(lua_State* L)
 {
   const char* name;
   DIR* dir;
@@ -180,7 +180,7 @@ static void pushtime(lua_State* L, time_t* time)
   lua_pushstring(L, buf);
 }
 
-int stat_lua(lua_State* L)
+int l_stat(lua_State* L)
 {
   static const struct { unsigned flag; const char* name; } modes[] =
   {

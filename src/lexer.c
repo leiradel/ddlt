@@ -307,7 +307,7 @@ static int l_gc(lua_State* L)
 #include "lexer_cpp.c"
 #include "lexer_bas.c"
 
-int newLexer_lua(lua_State* L)
+int l_newLexer(lua_State* L)
 {
   lexer_t* self;
   size_t length;

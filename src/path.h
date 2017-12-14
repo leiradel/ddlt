@@ -3,10 +3,10 @@
 
 #include <lua.h>
 
-int realpath_lua(lua_State* L);
-int split_lua(lua_State* L);
-int join_lua(lua_State* L);
-int scandir_lua(lua_State* L);
-int stat_lua(lua_State* L);
+int l_realpath(lua_State* L);
+int l_split(lua_State* L);
+int l_join(lua_State* L);
+int l_scandir(lua_State* L);
+int l_stat(lua_State* L);
 
 #endif /* PATH_H */

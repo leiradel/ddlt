@@ -3,6 +3,6 @@
 
 #include <lua.h>
 
-int newTemplate_lua(lua_State* L);
+int l_newTemplate(lua_State* L);
 
 #endif /* TEMPL_H */

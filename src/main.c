@@ -9,7 +9,7 @@
 #include "path.h"
 #include "boot_lua.h"
 
-static int main_lua(lua_State* L)
+static int l_main(lua_State* L)
 {
   int i, argc;
   const char** argv;
@@ -51,13 +51,13 @@ static int open_lib(lua_State* L)
 {
   static const luaL_Reg statics[] =
   {
-    {"newLexer",    newLexer_lua},
-    {"newTemplate", newTemplate_lua},
-    {"realpath",    realpath_lua},
-    {"split",       split_lua},
-    {"join",        join_lua},
-    {"scandir",     scandir_lua},
-    {"stat",        stat_lua},
+    {"newLexer",    l_newLexer},
+    {"newTemplate", l_newTemplate},
+    {"realpath",    l_realpath},
+    {"split",       l_split},
+    {"join",        l_join},
+    {"scandir",     l_scandir},
+    {"stat",        l_stat},
     {NULL,          NULL}
   };
   
@@ -81,7 +81,7 @@ int main(int argc, const char *argv[])
     
     lua_pushcfunction(L, traceback);
     
-    lua_pushcfunction(L, main_lua);
+    lua_pushcfunction(L, l_main);
     lua_pushnumber(L, argc);
     lua_pushlightuserdata(L, (void*)argv);
     

@@ -3,7 +3,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-int newTemplate_lua(lua_State* L)
+int l_newTemplate(lua_State* L)
 {
   size_t length;
   const char* source;
