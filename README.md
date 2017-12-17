@@ -302,13 +302,17 @@ The return value of `newTemplate` is a Lua function that will run the template w
 
 ## Changelog
 
+### 1.3.1
+
+* Allow nested *freeform* blocks
+
 ### 1.3.0
 
 * Comments are now returned by the tokenizer
 
 ### 1.2.0
 
-* Added support for Pascal
+* Added support for **Pascal**
 
 ### 1.1.0
 

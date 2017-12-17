@@ -155,19 +155,24 @@ static int block_comment(lua_State* L, lexer_t* self, const char* end)
   }
 }
 
-static int free_form(lua_State* L, lexer_t* self, const char* end)
+static int free_form(lua_State* L, lexer_t* self, const char* begin, const char* end)
 {
   const char* lexeme;
-  char reject[3];
-  size_t end_len;
+  char reject[4];
+  size_t begin_len, end_len;
+  unsigned nested = 0;
 
   lexeme = self->source;
 
   reject[0] = '\n';
-  reject[1] = *end;
-  reject[2] = 0;
+  reject[1] = *begin;
+  reject[2] = *end;
+  reject[3] = 0;
 
+  begin_len = strlen(begin) - 1;
   end_len = strlen(end) - 1;
+
+  self->source += begin_len + 1;
 
   for (;;)
   {
@@ -178,6 +183,16 @@ static int free_form(lua_State* L, lexer_t* self, const char* end)
       self->source++;
       self->line++;
     }
+    else if (*self->source == *begin)
+    {
+      self->source++;
+
+      if (!strncmp(self->source, begin + 1, begin_len))
+      {
+        self->source += begin_len;
+        nested++;
+      }
+    }
     else if (*self->source == *end)
     {
       self->source++;
@@ -185,7 +200,13 @@ static int free_form(lua_State* L, lexer_t* self, const char* end)
       if (!strncmp(self->source, end + 1, end_len))
       {
         self->source += end_len;
-        return push(L, self, "<freeform>", 10, lexeme, self->source - lexeme);
+
+        if (nested == 0)
+        {
+          return push(L, self, "<freeform>", 10, lexeme, self->source - lexeme);
+        }
+
+        nested--;
       }
     }
     else
@@ -235,7 +256,7 @@ static int l_next(lua_State* L)
       {
       case LINE_COMMENT:  return line_comment(L, self);
       case BLOCK_COMMENT: return block_comment(L, self, self->blocks[i].end);
-      case FREE_FORMAT:   return free_form(L, self, self->blocks[i].end);
+      case FREE_FORMAT:   return free_form(L, self, self->blocks[i].begin, self->blocks[i].end);
       }
     }
   }

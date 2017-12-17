@@ -17,6 +17,9 @@ struct Hero {
   int armour = 0x0;
   float speed = 14.3;
   isAlive = [{
+    [{
+      // Nested freeform block
+    }]
     return true;
   }]
 };

@@ -10,6 +10,8 @@ lines */
   Free
   form
   block
+
+  [{ Nested freeform block }]
 }]
 
 id

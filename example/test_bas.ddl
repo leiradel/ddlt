@@ -8,6 +8,8 @@ REM Line comment
   Free
   form
   block
+
+  [{ Nested freeform block }]
 }]
 
 id
