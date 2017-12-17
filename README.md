@@ -281,6 +281,8 @@ local parser = {
 }
 ```
 
+Nested *freeform* blocks are allowed, so it's easy to i.e. process **C++** class declarations in header files to generate code to create Lua bindings for them.
+
 ### newTemplate
 
 Templates can be used to make it easier to generate code. The `newTemplate` method accepts three of four arguments:
