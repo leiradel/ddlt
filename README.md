@@ -265,17 +265,23 @@ The resulting object only has one method, `next`. It takes a table where the inf
 Line and block comment, being returned by the tokenizer, allow for iteresting things like copying preprocessor directives to the output or processing them as they appear. If comments are not wanted, remove them from the token stream in the `match` parser method, i.e.:
 
 ```Lua
+local lexer = newLexer{
+  -- ...
+}
+
+local la = {}
+
 local parser = {
   -- ...
   
   match = function(self, token)
-    if token and token ~= self.la.token then
-      error(string.format('%u: %s expected', self.la.line, token))
+    if token and token ~= la.token then
+      error(string.format('%u: %s expected', la.line, token))
     end
 
     repeat
-      lexer:next(self.la)
-    until self.la.token ~= '<linecomment>' and self.la.token ~= '<blockcomment>'
+      lexer:next(la)
+    until la.token ~= '<linecomment>' and la.token ~= '<blockcomment>'
 
     -- ...
 }
