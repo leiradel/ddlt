@@ -30,6 +30,7 @@ struct lexer_t
   const char* source_name;
   unsigned    line;
   const char* source;
+  unsigned    la_line;
 
   int         source_ref;
   int         source_name_ref;
@@ -76,7 +77,7 @@ static int push(lua_State* L, const lexer_t* self, const char* token, size_t tok
   lua_pushlstring(L, lexeme, lexeme_length);
   lua_setfield(L, 2, "lexeme");
 
-  lua_pushinteger(L, self->line);
+  lua_pushinteger(L, self->la_line);
   lua_setfield(L, 2, "line");
 
   lua_pushvalue(L, 2);
@@ -98,13 +99,17 @@ static int is_symbol(lua_State* L, const lexer_t* self, const char* lexeme, size
 
 static int line_comment(lua_State* L, lexer_t* self)
 {
-  const char* newline = strchr(self->source, '\n');
+  const char* lexeme;
+  const char* newline;
+
+  lexeme = self->source;
+  newline = strchr(lexeme, '\n');
 
   if (newline != NULL)
   {
     self->source = newline + 1;
     self->line++;
-    return 0;
+    return push(L, self, "<linecomment>", 13, lexeme, self->source - lexeme);
   }
 
   return push(L, self, "<eof>", 5, "<eof>", 5);
@@ -112,8 +117,11 @@ static int line_comment(lua_State* L, lexer_t* self)
 
 static int block_comment(lua_State* L, lexer_t* self, const char* end)
 {
+  const char* lexeme;
   char reject[3];
   size_t end_len;
+
+  lexeme = self->source;
 
   reject[0] = '\n';
   reject[1] = *end;
@@ -137,7 +145,7 @@ static int block_comment(lua_State* L, lexer_t* self, const char* end)
       if (!strncmp(self->source, end + 1, end_len))
       {
         self->source += end_len;
-        return 0;
+        return push(L, self, "<blockcomment>", 14, lexeme, self->source - lexeme);
       }
     }
     else
@@ -196,7 +204,6 @@ static int l_next(lua_State* L)
   self = luaL_checkudata(L, 1, "lexer");
   luaL_checktype(L, 2, LUA_TTABLE);
 
-again:
   for (;;)
   {
     self->source += strspn(self->source, SPACE);
@@ -216,6 +223,8 @@ again:
     }
   }
 
+  self->la_line = self->line;
+
   for (i = 0; i < self->num_blocks; i++)
   {
     begin = self->blocks[i].begin;
@@ -224,25 +233,10 @@ again:
     {
       switch (self->blocks[i].type)
       {
-      case LINE_COMMENT:
-        i = line_comment(L, self);
-        break;
-
-      case BLOCK_COMMENT:
-        i = block_comment(L, self, self->blocks[i].end);
-        break;
-
-      case FREE_FORMAT:
-        i = free_form(L, self, self->blocks[i].end);
-        break;
+      case LINE_COMMENT:  return line_comment(L, self);
+      case BLOCK_COMMENT: return block_comment(L, self, self->blocks[i].end);
+      case FREE_FORMAT:   return free_form(L, self, self->blocks[i].end);
       }
-
-      if (i != 0)
-      {
-        return i;
-      }
-
-      goto again;
     }
   }
 
@@ -260,14 +254,7 @@ again:
     return push(L, self, begin, i, begin, i);
   }
 
-  i = self->next(L, self);
-
-  if (i != 0)
-  {
-    return i;
-  }
-
-  goto again;
+  return self->next(L, self);
 }
 
 static int l_index(lua_State* L)

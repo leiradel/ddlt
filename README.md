@@ -65,7 +65,7 @@ $ ./ddlt
 ddlt: a generic lexer that helps writing parsers using Lua
 Copyright 2017 Andre Leiradella @leiradel
 https://github.com/leiradel/ddlt
-Version 1.2
+Version 1.3
 
 Usage: ddlt <parser.lua> [args...]
 
@@ -98,9 +98,12 @@ local parse = function(file)
   repeat
     local la = {}
     assert(lexer:next(la))
-    la.lexeme = la.lexeme:gsub('\n', '\\n')
-    tokens[#tokens + 1] = la
-    max = math.max(max, #la.token)
+
+    if la.token ~= '<linecomment>' and la.token ~= '<blockcomment>' then
+      la.lexeme = la.lexeme:gsub('\n', '\\n')
+      tokens[#tokens + 1] = la
+      max = math.max(max, #la.token)
+    end
   until la.token == '<eof>'
 
   tokens.max = max
@@ -205,10 +208,10 @@ line =  18 token = <float>       lexeme = 14.3
 line =  18 token = ;             lexeme = ;
 line =  19 token = <id>          lexeme = isAlive
 line =  19 token = =             lexeme = =
-line =  21 token = <freeform>    lexeme = [{\n    return true;\n  }]
+line =  19 token = <freeform>    lexeme = [{\n    return true;\n  }]
 line =  22 token = }             lexeme = }
 line =  22 token = ;             lexeme = ;
-line =  23 token = <eof>         lexeme = <eof>
+line =  22 token = <eof>         lexeme = <eof>
 ```
 
 See the `example` folder for unit tests and a simple generator written using **ddlt**.
@@ -250,12 +253,33 @@ The resulting object only has one method, `next`. It takes a table where the inf
   * `<hexadecimal>` when it's a hexadecimal literal
   * `<string>` when it's a string literal
   * `<eof>` when there are no more tokens in the source code
+  * `<linecomment>` and `<blockcomment>` when it's a comment as configured in `newLexer`
+  * `<freeform>` when it's a *freeform* block as configured in `newLexer`
   * A symbol, as identified via the `isSymbol` function
   * A keyword, as identified in the `keywords` array when provided
 * `lexeme`: a string with the value of the token as found in the source code
 * `line`: the line number where the token is in the source code
 
 `next` will also return the same table passed to it as an argument if successful. In case of errors, it will return `nil`, plus a string describing the error. The error message will always be in the format `<file>:<line>: message`, which is the standard way to describe errors in compilers.
+
+Line and block comment, being returned by the tokenizer, allow for iteresting things like copying preprocessor directives to the output or processing them as they appear. If comments are not wanted, remove them from the token stream in the `match` parser method, i.e.:
+
+```Lua
+local parser = {
+  -- ...
+  
+  match = function(self, token)
+    if token and token ~= self.la.token then
+      error(string.format('%u: %s expected', self.la.line, token))
+    end
+
+    repeat
+      lexer:next(self.la)
+    until self.la.token ~= '<linecomment>' and self.la.token ~= '<blockcomment>'
+
+    -- ...
+}
+```
 
 ### newTemplate
 
@@ -265,7 +289,7 @@ Templates can be used to make it easier to generate code. The `newTemplate` meth
   * `code`: the template source code
   * `open_tag`: the open tag that delimits special template instructions
   * `close_tag`: the close tag
-  * `name`: an optional template name, which is used in error messages; `"template"` is used if this argument is not provided
+  * `name`: an optional template name, which is used in error messages; `'template'` is used if this argument is not provided
 
 There are two template instructions, one to emit content to the output, and another to execute arbitrary Lua code. To emit content, use the open tag followed by `=`. To execute code, use the open tag followed by `!`.
 
@@ -277,6 +301,10 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 1.3.0
+
+* Comments are now returned by the tokenizer
 
 ### 1.2.0
 

@@ -53,7 +53,10 @@ return function(args)
 
   -- inception
   local expected = {
-    {line = 13, token = [[<freeform>]], lexeme = [=[[{\n  Free\n  form\n  block\n}]]=]},
+    {line = 1, token = [[<linecomment>]], lexeme = [[// Line comment\n]]},
+    {line = 3, token = [[<blockcomment>]], lexeme = [[/* Block comment */]]},
+    {line = 5, token = [[<blockcomment>]], lexeme = [[/* Block comment\nspawning multiple\nlines */]]},
+    {line = 9, token = [[<freeform>]], lexeme = [=[[{\n  Free\n  form\n  block\n}]]=]},
     {line = 15, token = [[<id>]], lexeme = [[id]]},
     {line = 16, token = [[<id>]], lexeme = [[Id]]},
     {line = 17, token = [[<id>]], lexeme = [[iD]]},
@@ -89,7 +92,7 @@ return function(args)
     {line = 49, token = [[<string>]], lexeme = [[""]]},
     {line = 50, token = [[<string>]], lexeme = [["\""]]},
     {line = 51, token = [[<string>]], lexeme = [["\a\b\f\n\r\t\v\\\'\"\?\xab\xAB\uabcd\uABCD\U0123abcd\U0123ABCD\033"]]},
-    {line = 52, token = [[<eof>]], lexeme = [[<eof>]]},
+    {line = 51, token = [[<eof>]], lexeme = [[<eof>]]},
   }
 
   assert(#tokens == #expected, 'Wrong number of tokens produced')

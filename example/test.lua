@@ -20,9 +20,12 @@ local parse = function(file)
   repeat
     local la = {}
     assert(lexer:next(la))
-    la.lexeme = la.lexeme:gsub('\n', '\\n')
-    tokens[#tokens + 1] = la
-    max = math.max(max, #la.token)
+
+    if la.token ~= '<linecomment>' and la.token ~= '<blockcomment>' then
+      la.lexeme = la.lexeme:gsub('\n', '\\n')
+      tokens[#tokens + 1] = la
+      max = math.max(max, #la.token)
+    end
   until la.token == '<eof>'
 
   tokens.max = max
