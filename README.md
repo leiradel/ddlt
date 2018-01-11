@@ -99,11 +99,9 @@ local parse = function(file)
     local la = {}
     assert(lexer:next(la))
 
-    if la.token ~= '<linecomment>' and la.token ~= '<blockcomment>' then
-      la.lexeme = la.lexeme:gsub('\n', '\\n')
-      tokens[#tokens + 1] = la
-      max = math.max(max, #la.token)
-    end
+    la.lexeme = la.lexeme:gsub('\n', '\\n')
+    tokens[#tokens + 1] = la
+    max = math.max(max, #la.token)
   until la.token == '<eof>'
 
   tokens.max = max
@@ -155,7 +153,10 @@ struct Hero {
   int armour = 0x0;
   float speed = 14.3;
   isAlive = [{
-    return true;
+    [{
+      // Nested freeform block
+    }]
+    return health > 0;
   }]
 };
 ```
@@ -163,55 +164,57 @@ struct Hero {
 the result will be
 
 ```
-line =   2 token = enum          lexeme = enum
-line =   2 token = <id>          lexeme = Weapons
-line =   2 token = {             lexeme = {
-line =   3 token = <id>          lexeme = kFist
-line =   3 token = ,             lexeme = ,
-line =   4 token = <id>          lexeme = kChainsaw
-line =   4 token = ,             lexeme = ,
-line =   5 token = <id>          lexeme = kPistol
-line =   5 token = ,             lexeme = ,
-line =   6 token = <id>          lexeme = kShotgun
-line =   6 token = ,             lexeme = ,
-line =   7 token = <id>          lexeme = kChaingun
-line =   7 token = ,             lexeme = ,
-line =   8 token = <id>          lexeme = kRocketLauncher
-line =   8 token = ,             lexeme = ,
-line =   9 token = <id>          lexeme = kPlasmaGun
-line =   9 token = ,             lexeme = ,
-line =  10 token = <id>          lexeme = kBFG9000
-line =  11 token = }             lexeme = }
-line =  11 token = ;             lexeme = ;
-line =  14 token = struct        lexeme = struct
-line =  14 token = <id>          lexeme = Hero
-line =  14 token = {             lexeme = {
-line =  15 token = string        lexeme = string
-line =  15 token = <id>          lexeme = name
-line =  15 token = =             lexeme = =
-line =  15 token = <string>      lexeme = "John \"Hero\" Doe"
-line =  15 token = ;             lexeme = ;
-line =  16 token = int           lexeme = int
-line =  16 token = <id>          lexeme = health
-line =  16 token = =             lexeme = =
-line =  16 token = <decimal>     lexeme = 100
-line =  16 token = ;             lexeme = ;
-line =  17 token = int           lexeme = int
-line =  17 token = <id>          lexeme = armour
-line =  17 token = =             lexeme = =
-line =  17 token = <hexadecimal> lexeme = 0x0
-line =  17 token = ;             lexeme = ;
-line =  18 token = float         lexeme = float
-line =  18 token = <id>          lexeme = speed
-line =  18 token = =             lexeme = =
-line =  18 token = <float>       lexeme = 14.3
-line =  18 token = ;             lexeme = ;
-line =  19 token = <id>          lexeme = isAlive
-line =  19 token = =             lexeme = =
-line =  19 token = <freeform>    lexeme = [{\n    return true;\n  }]
-line =  22 token = }             lexeme = }
-line =  22 token = ;             lexeme = ;
-line =  22 token = <eof>         lexeme = <eof>
+line =   1 token = <linecomment>  lexeme = // The weapons available in the game\n
+line =   2 token = enum           lexeme = enum
+line =   2 token = <id>           lexeme = Weapons
+line =   2 token = {              lexeme = {
+line =   3 token = <id>           lexeme = kFist
+line =   3 token = ,              lexeme = ,
+line =   4 token = <id>           lexeme = kChainsaw
+line =   4 token = ,              lexeme = ,
+line =   5 token = <id>           lexeme = kPistol
+line =   5 token = ,              lexeme = ,
+line =   6 token = <id>           lexeme = kShotgun
+line =   6 token = ,              lexeme = ,
+line =   7 token = <id>           lexeme = kChaingun
+line =   7 token = ,              lexeme = ,
+line =   8 token = <id>           lexeme = kRocketLauncher
+line =   8 token = ,              lexeme = ,
+line =   9 token = <id>           lexeme = kPlasmaGun
+line =   9 token = ,              lexeme = ,
+line =  10 token = <id>           lexeme = kBFG9000
+line =  11 token = }              lexeme = }
+line =  11 token = ;              lexeme = ;
+line =  13 token = <blockcomment> lexeme = /* The player */
+line =  14 token = struct         lexeme = struct
+line =  14 token = <id>           lexeme = Hero
+line =  14 token = {              lexeme = {
+line =  15 token = string         lexeme = string
+line =  15 token = <id>           lexeme = name
+line =  15 token = =              lexeme = =
+line =  15 token = <string>       lexeme = "John \"Hero\" Doe"
+line =  15 token = ;              lexeme = ;
+line =  16 token = int            lexeme = int
+line =  16 token = <id>           lexeme = health
+line =  16 token = =              lexeme = =
+line =  16 token = <decimal>      lexeme = 100
+line =  16 token = ;              lexeme = ;
+line =  17 token = int            lexeme = int
+line =  17 token = <id>           lexeme = armour
+line =  17 token = =              lexeme = =
+line =  17 token = <hexadecimal>  lexeme = 0x0
+line =  17 token = ;              lexeme = ;
+line =  18 token = float          lexeme = float
+line =  18 token = <id>           lexeme = speed
+line =  18 token = =              lexeme = =
+line =  18 token = <float>        lexeme = 14.3
+line =  18 token = ;              lexeme = ;
+line =  19 token = <id>           lexeme = isAlive
+line =  19 token = =              lexeme = =
+line =  19 token = <freeform>     lexeme = [{\n    [{\n      // Nested freeform block\n    }]\n    return health > 0;\n  }]
+line =  25 token = }              lexeme = }
+line =  25 token = ;              lexeme = ;
+line =  25 token = <eof>          lexeme = <eof>
 ```
 
 See the `example` folder for unit tests and a simple generator written using **ddlt**.

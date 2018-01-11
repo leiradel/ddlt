@@ -20,6 +20,6 @@ struct Hero {
     [{
       // Nested freeform block
     }]
-    return true;
+    return health > 0;
   }]
 };
