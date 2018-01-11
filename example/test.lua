@@ -38,16 +38,14 @@ line = /*= string.format('%3d', la.line) */ token = /*= string.format(tkfmt, la.
 /*! end */
 ]]
 
-return function(args)
-  if #args ~= 2 then
-    error('missing input file\n')
-  end
-
-  local res = {}
-  local tokens = parse(args[2])
-  local templ = assert(ddlt.newTemplate(template, '/*', '*/'))
-  templ(tokens, function(out) res[#res + 1] = out end)
-
-  res = table.concat(res):gsub('\n+', '\n')
-  io.write(res)
+if #arg ~= 1 then
+  error('missing input file\n')
 end
+
+local res = {}
+local tokens = parse(arg[1])
+local templ = assert(ddlt.newTemplate(template, '/*', '*/'))
+templ(tokens, function(out) res[#res + 1] = out end)
+
+res = table.concat(res):gsub('\n+', '\n')
+io.write(res)

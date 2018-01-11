@@ -1,6 +1,6 @@
 # ddlt
 
-**ddlt** is a generic lexer to help write parsers using [Lua](https://www.lua.org/). It includes a tokenizer capable of recognizing **C++**, **BASIC**, and **Pascal** comments, identifiers, and number and string literals. A template engine is also included to ease the development of transpilers.
+**ddlt** is [Lua](https://www.lua.org/) module implementing a generic lexer to help write parsers. It includes a tokenizer capable of recognizing **C++**, **BASIC**, and **Pascal** comments, identifiers, and number and string literals. A template engine is also included to ease the development of transpilers.
 
 The tokenizer recognizes:
 
@@ -56,24 +56,11 @@ The tokenizer can also recognize and return *freeform* blocks, using user-define
 
 ## Build
 
-`make` should do the job.
+`make` should do the job. It will generate a shared object that can be [require](https://www.lua.org/manual/5.3/manual.html#pdf-require)d in Lua code.
 
 ## Usage
 
-```
-$ ./ddlt
-ddlt: a generic lexer that helps writing parsers using Lua
-Copyright 2017-2018 Andre Leiradella @leiradel
-https://github.com/leiradel/ddlt
-Version 1.3
-
-Usage: ddlt <parser.lua> [args...]
-
-ddlt runs the Lua script given as its first argument, and executes the
-function returned by that script.
-```
-
-If your parser code is
+If have a `test.lua` file
 
 ```Lua
 local ddlt = require 'ddlt'
@@ -116,22 +103,20 @@ line = /*= string.format('%3d', la.line) */ token = /*= string.format(tkfmt, la.
 /*! end */
 ]]
 
-return function(args)
-  if #args ~= 2 then
-    error('missing input file\n')
-  end
-
-  local res = {}
-  local tokens = parse(args[2])
-  local templ = assert(ddlt.newTemplate(template, '/*', '*/'))
-  templ(tokens, function(out) res[#res + 1] = out end)
-
-  res = table.concat(res):gsub('\n+', '\n')
-  io.write(res)
+if #arg ~= 1 then
+  error('missing input file\n')
 end
+
+local res = {}
+local tokens = parse(arg[1])
+local templ = assert(ddlt.newTemplate(template, '/*', '*/'))
+templ(tokens, function(out) res[#res + 1] = out end)
+
+res = table.concat(res):gsub('\n+', '\n')
+io.write(res)
 ```
 
-and you feed a file with the following contents to it
+and a `test.ddl` file with
 
 ```C
 // The weapons available in the game
@@ -161,9 +146,11 @@ struct Hero {
 };
 ```
 
-the result will be
+the result of running the parser will be
 
 ```
+$ lua test.lua test.ddl
+
 line =   1 token = <linecomment>  lexeme = // The weapons available in the game\n
 line =   2 token = enum           lexeme = enum
 line =   2 token = <id>           lexeme = Weapons
@@ -217,11 +204,11 @@ line =  25 token = ;              lexeme = ;
 line =  25 token = <eof>          lexeme = <eof>
 ```
 
-See the `example` folder for unit tests and a simple generator written using **ddlt**.
+See the `example` folder for unit tests and a simple generator written with **ddlt**.
 
 ## Documentation
 
-Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require) **ddlt** to access functions to tokenize an input source code, and to create templates to generate code, as well as some functions to help deal with the file system.
+Your parser can require **ddlt** to access functions to tokenize an input source code, and to create templates to generate code, as well as some functions to help deal with the file system.
 
 * `absolute = realpath(path)`: returns the absolute path for the given path
 * `dir, name, ext = split(path)`: splits a path into its constituents, dir, file name, and extension
@@ -312,6 +299,10 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 2.0.0
+
+* Made **ddlt** a module
 
 ### 1.3.1
 

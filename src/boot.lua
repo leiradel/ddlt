@@ -1,29 +1,4 @@
-local ddlt = require 'ddlt'
-
-local function usage(out)
-  out:write[[
-ddlt: a generic lexer that helps writing parsers using Lua
-Copyright 2017-2018 Andre Leiradella @leiradel
-https://github.com/leiradel/ddlt
-Version 1.3
-
-Usage: ddlt <parser.lua> [args...]
-
-ddlt runs the Lua script given as its first argument, and executes the
-function returned by that script.
-]]
-end
-
-return function(args)
-  if #args == 0 then
-    usage(io.stderr)
-    os.exit(1)
-  end
-
-  args[1] = ddlt.realpath(args[1])
-
-  local main = assert(loadfile(args[1], 't'))()
-
+return function(ddlt)
   local newLexer = ddlt.newLexer
 
   ddlt.newLexer = function(options)
@@ -78,5 +53,10 @@ return function(args)
     end
   end
 
-  main(args)
+  ddlt._VERSION = '2.0.0'
+  ddlt._COPYRIGHT = 'Copyright (C) 2017-2018 Andre Leiradella'
+  ddlt._DESCRIPTION = 'A generic lexer to help writing parsers using Lua'
+  ddlt._URL = 'https://github.com/leiradel/ddlt'
+
+  return ddlt
 end
