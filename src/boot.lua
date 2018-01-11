@@ -3,7 +3,7 @@ local ddlt = require 'ddlt'
 local function usage(out)
   out:write[[
 ddlt: a generic lexer that helps writing parsers using Lua
-Copyright 2017 Andre Leiradella @leiradel
+Copyright 2017-2018 Andre Leiradella @leiradel
 https://github.com/leiradel/ddlt
 Version 1.3
 

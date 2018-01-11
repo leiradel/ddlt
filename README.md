@@ -63,7 +63,7 @@ The tokenizer can also recognize and return *freeform* blocks, using user-define
 ```
 $ ./ddlt
 ddlt: a generic lexer that helps writing parsers using Lua
-Copyright 2017 Andre Leiradella @leiradel
+Copyright 2017-2018 Andre Leiradella @leiradel
 https://github.com/leiradel/ddlt
 Version 1.3
 
