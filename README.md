@@ -28,10 +28,10 @@ The tokenizer recognizes:
   * Line comments from `REM`, independent of case, to the end of the line.
   * Identifiers in the form `[A-Za-z_][A-Za-z_0-9]*`.
   * Numbers in the form:
-    * `&[Bb][01]+` as binary literals
-    * `&[Oo][0-7]+` as octal literals
     * `&[Hh][0-9A-Fa-f]+` as hexadecimal literals
     * `[0-9]+` as decimal literals
+    * `&[Oo][0-7]+` as octal literals
+    * `&[Bb][01]+` as binary literals
     * `[0-9]*\.[0-9]+([Ee][+-]?[0-9]+)?` as float literals
     * `[0-9]+\.[0-9]*([Ee][+-]?[0-9]+)?` as float literals
     * `[0-9]+[Ee][+-]?[0-9]+` as float literals
@@ -44,9 +44,9 @@ The tokenizer recognizes:
   * Block comments from `{` to `}`. Nested comments are *not* supported.
   * Numbers in the form:
     * `$[0-9a-fA-F]+` as hexadecimal literals
-    * `&[0-9a-fA-F]+` as octal literals
-    * `%[0-9a-fA-F]+` as binary literals
     * `[0-9]+` as decimal literals
+    * `&[0-7]+` as octal literals
+    * `%[01]+` as binary literals
     * `[0-9]+\.[0-9]+` as float literals
     * `[0-9]+[Ee][+-]?[0-9]+` as float literals
     * `[0-9]+\.[0-9]+[Ee][+-]?[0-9]+` as float literals
@@ -220,7 +220,7 @@ See the `example` folder for unit tests and a simple generator written using **d
 
 Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require) **ddlt** to access functions to tokenize an input source code, and to create templates to generate code, as well as some functions to help deal with the file system.
 
-* `canonic = realpath(path)`: returns the canonicalized absolute pathname
+* `absolute = realpath(path)`: returns the absolute path for the given path
 * `dir, name, ext = split(path)`: splits a path into its constituents, dir, file name, and extension
 * `entries = scandir(path)`: returns a table with all the entries in the specified path
 * `info = stat(path)`: returns a table with information about the object at path, as returned by [stat](https://linux.die.net/man/2/stat) containing `size`, `atime`, `mtime`, `ctime`, `sock`, `link`, `file`, `block`, `dir`, `char`, and `fifo`
@@ -233,7 +233,7 @@ Your parser can [require](https://www.lua.org/manual/5.3/manual.html#pdf-require
 
 * `source`: a string with the entire source code that will be tokenized.
 * `file`: a string with the name of the object used to create the source code (usually the file name from where the source code was read, this is used for error messages).
-* `isSymbol`: a function which takes a lexeme and must return `true` if that lexeme is a valid symbol.
+* `isSymbol`: a function which takes a lexeme and returns `true` if that lexeme is a valid symbol.
 * `language`: a string containing the language used to parse identifiers, string and number literals, and comments. Supported languages are `'cpp'` for **C++**, `'bas'` for **BASIC**, and `'pas'` for **Pascal**.
 * `freeform`: an array with two elements, the *freeform* delimiters to recognize freeform blocks.
 
@@ -262,7 +262,7 @@ The resulting object only has one method, `next`. It takes a table where the inf
 
 `next` will also return the same table passed to it as an argument if successful. In case of errors, it will return `nil`, plus a string describing the error. The error message will always be in the format `<file>:<line>: message`, which is the standard way to describe errors in compilers.
 
-Line and block comment, being returned by the tokenizer, allow for iteresting things like copying preprocessor directives to the output or processing them as they appear. If comments are not wanted, remove them from the token stream in the `match` parser method, i.e.:
+Line and block comment, being returned by the tokenizer, allow for iteresting things like copying preprocessor directives to the output or processing them as they appear. If comments are not wanted, remove them from the token stream in your `match` parser method, i.e.:
 
 ```Lua
 local lexer = newLexer{
