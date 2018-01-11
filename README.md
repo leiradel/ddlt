@@ -1,6 +1,6 @@
 # ddlt
 
-**ddlt** is a generic lexer to help write parsers using [Lua](https://www.lua.org/). It includes a tokenizer capable of recognizing **C++**, **BASIC**, and **Pascal** comments, identifiers, and number and string literals. A template engine is also included to easy the development of transpilers.
+**ddlt** is a generic lexer to help write parsers using [Lua](https://www.lua.org/). It includes a tokenizer capable of recognizing **C++**, **BASIC**, and **Pascal** comments, identifiers, and number and string literals. A template engine is also included to ease the development of transpilers.
 
 The tokenizer recognizes:
 
