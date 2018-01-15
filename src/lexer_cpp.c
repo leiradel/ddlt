@@ -161,17 +161,18 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
   return error(L, self, "internal error, base is %d", base);
 }
 
-static int cpp_get_string(lua_State* L, lexer_t* self, unsigned skip, const char* token)
+static int cpp_get_string(lua_State* L, lexer_t* self, unsigned skip, int quote, const char* prefix)
 {
   const char* lexeme;
   char reject[3];
   size_t length;
   char c[8];
+  char token[32];
 
   lexeme = self->source;
   self->source += skip + 1;
 
-  reject[0] = '"';
+  reject[0] = quote;
   reject[1] = '\\';
   reject[2] = 0;
 
@@ -179,7 +180,7 @@ static int cpp_get_string(lua_State* L, lexer_t* self, unsigned skip, const char
   {
     self->source += strcspn(self->source, reject);
 
-    if (*self->source == '"')
+    if (*self->source == quote)
     {
       self->source++;
       break;
@@ -257,7 +258,8 @@ static int cpp_get_string(lua_State* L, lexer_t* self, unsigned skip, const char
     }
   }
 
-  return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
+  length = snprintf(token, sizeof(token), "<%s%s>", prefix, quote == '"' ? "string" : "char");
+  return push(L, self, token, length, lexeme, self->source - lexeme);
 }
 
 static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const char* token)
@@ -302,7 +304,7 @@ static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const c
 
 static int cpp_next_lua(lua_State* L, lexer_t* self)
 {
-  char k0, k1;
+  char k0, k1, k2;
   char c[8];
 
   if (strspn(self->source, DIGIT ".") != 0)
@@ -312,38 +314,40 @@ static int cpp_next_lua(lua_State* L, lexer_t* self)
 
   k0 = *self->source;
 
-  if (k0 == '"')
+  if (k0 == '"' || k0 == '\'')
   {
-    return cpp_get_string(L, self, 0, "<string>");
+    return cpp_get_string(L, self, 0, k0, "");
   }
 
   k1 = self->source[1];
 
-  if (k1 == '"')
+  if (k1 == '"' || k1 == '\'')
   {
     if (k0 == 'L')
     {
-      return cpp_get_string(L, self, 1, "<widestring>");
+      return cpp_get_string(L, self, 1, k1, "wide");
     }
     else if (k0 == 'u')
     {
-      return cpp_get_string(L, self, 1, "<utf16string>");
+      return cpp_get_string(L, self, 1, k1, "utf16");
     }
     else if (k0 == 'U')
     {
-      return cpp_get_string(L, self, 1, "<utf32string>");
+      return cpp_get_string(L, self, 1, k1, "utf32");
     }
-    else if (k0 == 'R')
+    else if (k0 == 'R' && k1 == '"')
     {
       return cpp_get_rawstring(L, self, 1, "<rawstring>");
     }
   }
 
-  if (k1 != 0 && self->source[2] == '"')
+  k2 = k1 != 0 ? self->source[2] : 0;
+
+  if (k2 == '"')
   {
     if (k0 == 'u' && k1 == '8')
     {
-      return cpp_get_string(L, self, 2, "<utf8string>");
+      return cpp_get_string(L, self, 2, k2, "utf8");
     }
     else if ((k0 == 'L' && k1 == 'R') || (k0 == 'R' && k1 == 'L'))
     {
@@ -357,6 +361,11 @@ static int cpp_next_lua(lua_State* L, lexer_t* self)
     {
       return cpp_get_rawstring(L, self, 2, "<rawutf32string>");
     }
+  }
+
+  if (k0 == 'u' && k1 == '8' && k2 == '\'')
+  {
+    return cpp_get_string(L, self, 2, k2, "utf8");
   }
 
   if (strspn(self->source, ALPHA) != 0)

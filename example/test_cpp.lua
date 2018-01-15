@@ -102,7 +102,12 @@ local expected = {
   {line = 62, token = [[<rawutf16string>]], lexeme = [[Ru"raw(raw char16_t string)raw"]]},
   {line = 63, token = [[<rawutf32string>]], lexeme = [[UR"raw(raw char32_t string)raw"]]},
   {line = 64, token = [[<rawutf32string>]], lexeme = [[RU"raw(raw char32_t string)raw"]]},
-  {line = 64, token = [[<eof>]], lexeme = [[<eof>]]},
+  {line = 65, token = [[<char>]], lexeme = [['char character']]},
+  {line = 66, token = [[<widechar>]], lexeme = [[L'wchar_t character']]},
+  {line = 67, token = [[<utf8char>]], lexeme = [[u8'UTF-8 encoded character']]},
+  {line = 68, token = [[<utf16char>]], lexeme = [[u'char16_t character']]},
+  {line = 69, token = [[<utf32char>]], lexeme = [[U'char32_t character']]},
+  {line = 69, token = [[<eof>]], lexeme = [[<eof>]]},
 }
 
 assert(#tokens == #expected, 'Wrong number of tokens produced')

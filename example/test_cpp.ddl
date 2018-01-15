@@ -62,3 +62,8 @@ uR"raw(raw char16_t string)raw"
 Ru"raw(raw char16_t string)raw"
 UR"raw(raw char32_t string)raw"
 RU"raw(raw char32_t string)raw"
+'char character'
+L'wchar_t character'
+u8'UTF-8 encoded character'
+u'char16_t character'
+U'char32_t character'
