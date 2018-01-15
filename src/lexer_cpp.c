@@ -161,14 +161,15 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
   return error(L, self, "internal error, base is %d", base);
 }
 
-static int cpp_get_string(lua_State* L, lexer_t* self)
+static int cpp_get_string(lua_State* L, lexer_t* self, unsigned skip, const char* token)
 {
   const char* lexeme;
   char reject[3];
   size_t length;
   char c[8];
 
-  lexeme = self->source++;
+  lexeme = self->source;
+  self->source += skip + 1;
 
   reject[0] = '"';
   reject[1] = '\\';
@@ -256,26 +257,111 @@ static int cpp_get_string(lua_State* L, lexer_t* self)
     }
   }
 
-  return push(L, self, "<string>", 8, lexeme, self->source - lexeme);
+  return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
+}
+
+static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const char* token)
+{
+  const char* lexeme;
+  char delimiter[24];
+  size_t count;
+  char c[8];
+  
+  lexeme = self->source;
+  self->source += skip + 1;
+
+  count = strcspn(self->source, NOTDELIM);
+
+  if (count > 16)
+  {
+    return error(L, self, "raw string delimiter longer than 16 characters");
+  }
+
+  memcpy(delimiter, self->source, count);
+  delimiter[count] = '"';
+  delimiter[count + 1] = 0;
+
+  self->source += count;
+
+  if (*self->source != '(')
+  {
+    cpp_format_char(c, sizeof(c), *self->source);
+    return error(L, self, "invalid character %s in raw string delimiter", c);
+  }
+
+  self->source = strchr(self->source + 1, ')');
+
+  if (self->source == NULL || strncmp(self->source + 1, delimiter, count + 1))
+  {
+    return error(L, self, "missing raw string terminating delimiter )%s", delimiter);
+  }
+
+  self->source += count + 2;
+  return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
 }
 
 static int cpp_next_lua(lua_State* L, lexer_t* self)
 {
+  char k0, k1;
   char c[8];
-
-  if (strspn(self->source, ALPHA) != 0)
-  {
-    return cpp_get_id(L, self);
-  }
 
   if (strspn(self->source, DIGIT ".") != 0)
   {
     return cpp_get_number(L, self);
   }
 
-  if (*self->source == '"')
+  k0 = *self->source;
+
+  if (k0 == '"')
   {
-    return cpp_get_string(L, self);
+    return cpp_get_string(L, self, 0, "<string>");
+  }
+
+  k1 = self->source[1];
+
+  if (k1 == '"')
+  {
+    if (k0 == 'L')
+    {
+      return cpp_get_string(L, self, 1, "<widestring>");
+    }
+    else if (k0 == 'u')
+    {
+      return cpp_get_string(L, self, 1, "<utf16string>");
+    }
+    else if (k0 == 'U')
+    {
+      return cpp_get_string(L, self, 1, "<utf32string>");
+    }
+    else if (k0 == 'R')
+    {
+      return cpp_get_rawstring(L, self, 1, "<rawstring>");
+    }
+  }
+
+  if (k1 != 0 && self->source[2] == '"')
+  {
+    if (k0 == 'u' && k1 == '8')
+    {
+      return cpp_get_string(L, self, 2, "<utf8string>");
+    }
+    else if ((k0 == 'L' && k1 == 'R') || (k0 == 'R' && k1 == 'L'))
+    {
+      return cpp_get_rawstring(L, self, 2, "<rawwidestring>");
+    }
+    else if ((k0 == 'u' && k1 == 'R') || (k0 == 'R' && k1 == 'u'))
+    {
+      return cpp_get_rawstring(L, self, 2, "<rawutf16string>");
+    }
+    else if ((k0 == 'U' && k1 == 'R') || (k0 == 'R' && k1 == 'U'))
+    {
+      return cpp_get_rawstring(L, self, 2, "<rawutf32string>");
+    }
+  }
+
+  if (strspn(self->source, ALPHA) != 0)
+  {
+    return cpp_get_id(L, self);
   }
 
   cpp_format_char(c, sizeof(c), *self->source);

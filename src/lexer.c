@@ -44,13 +44,14 @@ struct lexer_t
   char        freeform_end[16];
 };
 
-#define SPACE  " \f\r\t\v" /* \n is treated separately to keep track of the line number */
-#define ALPHA  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
-#define DIGIT  "0123456789"
-#define ALNUM  ALPHA DIGIT
-#define XDIGIT DIGIT "ABCDEFabcdef"
-#define ODIGIT "01234567"
-#define BDIGIT "01"
+#define SPACE    " \f\r\t\v" /* \n is treated separately to keep track of the line number */
+#define ALPHA    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
+#define DIGIT    "0123456789"
+#define ALNUM    ALPHA DIGIT
+#define XDIGIT   DIGIT "ABCDEFabcdef"
+#define ODIGIT   "01234567"
+#define BDIGIT   "01"
+#define NOTDELIM " ()\\\t\v\f\n"
 
 static int error(lua_State* L, const lexer_t* self, const char* format, ...)
 {

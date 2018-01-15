@@ -91,7 +91,18 @@ local expected = {
   {line = 51, token = [[<string>]], lexeme = [[""]]},
   {line = 52, token = [[<string>]], lexeme = [["\""]]},
   {line = 53, token = [[<string>]], lexeme = [["\a\b\f\n\r\t\v\\\'\"\?\xab\xAB\uabcd\uABCD\U0123abcd\U0123ABCD\033"]]},
-  {line = 53, token = [[<eof>]], lexeme = [[<eof>]]},
+  {line = 54, token = [[<widestring>]], lexeme = [[L"wchar_t string"]]},
+  {line = 55, token = [[<utf8string>]], lexeme = [[u8"UTF-8 encoded string"]]},
+  {line = 56, token = [[<utf16string>]], lexeme = [[u"char16_t string"]]},
+  {line = 57, token = [[<utf32string>]], lexeme = [[U"char32_t string"]]},
+  {line = 58, token = [[<rawstring>]], lexeme = [[R"raw(raw string)raw"]]},
+  {line = 59, token = [[<rawwidestring>]], lexeme = [[LR"raw(raw wchar_t string)raw"]]},
+  {line = 60, token = [[<rawwidestring>]], lexeme = [[RL"raw(raw wchar_t string)raw"]]},
+  {line = 61, token = [[<rawutf16string>]], lexeme = [[uR"raw(raw char16_t string)raw"]]},
+  {line = 62, token = [[<rawutf16string>]], lexeme = [[Ru"raw(raw char16_t string)raw"]]},
+  {line = 63, token = [[<rawutf32string>]], lexeme = [[UR"raw(raw char32_t string)raw"]]},
+  {line = 64, token = [[<rawutf32string>]], lexeme = [[RU"raw(raw char32_t string)raw"]]},
+  {line = 64, token = [[<eof>]], lexeme = [[<eof>]]},
 }
 
 assert(#tokens == #expected, 'Wrong number of tokens produced')
