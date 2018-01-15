@@ -30,8 +30,8 @@ The tokenizer recognizes:
     * `U"..."` UTF-32 encoded strings
     * `R"..."` raw strings
     * `LR"..."` and `RL"..."` raw wide strings
-    * `uR"..."` and `Ru"..."` UTF-16 encoded raw strings
-    * `UR"..."` and `RU"..."` UTF-32 encoded raw strings
+    * `uR"..."` and `Ru"..."` raw UTF-16 encoded strings
+    * `UR"..."` and `RU"..."` raw UTF-32 encoded strings
 * **BASIC**
   * Line comments from `'` to the end of the line.
   * Line comments from `REM`, independent of case, to the end of the line.
