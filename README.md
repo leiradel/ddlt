@@ -23,6 +23,15 @@ The tokenizer recognizes:
     * `\u` followed by exactly four hexadecimal digits
     * `\U` followed by exactly eight hexadecimal digits
     * A `\` followed by at least one octal digit
+  * Strings literals other than the narrow multibyte:
+    * `L"..."` wide strings
+    * `u8"..."` UTF-8 encoded strings
+    * `u"..."` UTF-16 encoded strings
+    * `U"..."` UTF-32 encoded strings
+    * `R"..."` raw strings
+    * `LR"..."` and `RL"..."` raw wide strings
+    * `uR"..."` and `Ru"..."` UTF-16 encoded raw strings
+    * `UR"..."` and `RU"..."` UTF-32 encoded raw strings
 * **BASIC**
   * Line comments from `'` to the end of the line.
   * Line comments from `REM`, independent of case, to the end of the line.
