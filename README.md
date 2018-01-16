@@ -7,6 +7,7 @@ The tokenizer recognizes:
 * **C++**
   * Line comments from `//` to the end of the line.
   * Block comments from `/*` to `*/`. Nested comments are *not* supported.
+  * C preprocessor directives, from `#` (as long as its the first character in the line) to the end of the line.
   * Identifiers in the form `[A-Za-z_][A-Za-z_0-9]*`.
   * Numbers in the form:
     * `0x[0-9A-Fa-f]+` as hexadecimal literals

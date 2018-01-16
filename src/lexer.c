@@ -30,6 +30,7 @@ struct lexer_t
   const char* source_name;
   unsigned    line;
   const char* source;
+  const char* line_start;
   unsigned    la_line;
 
   int         source_ref;
@@ -109,6 +110,7 @@ static int line_comment(lua_State* L, lexer_t* self)
   if (newline != NULL)
   {
     self->source = newline + 1;
+    self->line_start = self->source;
     self->line++;
     return push(L, self, "<linecomment>", 13, lexeme, self->source - lexeme);
   }
@@ -238,6 +240,7 @@ static int l_next(lua_State* L)
     {
       self->source++;
       self->line++;
+      self->line_start = self->source;
     }
     else
     {
@@ -331,6 +334,7 @@ int l_newLexer(lua_State* L)
   {
     self->source = lua_tostring(L, -1);
     self->source_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    self->line_start = self->source;
   }
   else
   {

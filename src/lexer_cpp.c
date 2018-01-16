@@ -312,6 +312,25 @@ static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const c
   return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
 }
 
+static int cpp_directive(lua_State* L, lexer_t* self)
+{
+  const char* lexeme;
+  const char* newline;
+
+  lexeme = self->line_start;
+  newline = strchr(self->source, '\n');
+
+  if (newline != NULL)
+  {
+    self->source = newline + 1;
+    self->line_start = self->source;
+    self->line++;
+    return push(L, self, "<directive>", 11, lexeme, self->source - lexeme);
+  }
+
+  return push(L, self, "<eof>", 5, "<eof>", 5);
+}
+
 static int cpp_next_lua(lua_State* L, lexer_t* self)
 {
   char k0, k1, k2;
@@ -381,6 +400,11 @@ static int cpp_next_lua(lua_State* L, lexer_t* self)
   if (strspn(self->source, ALPHA) != 0)
   {
     return cpp_get_id(L, self);
+  }
+
+  if (*self->source == '#' && strspn(self->line_start, SPACE) == (self->source - self->line_start))
+  {
+    return cpp_directive(L, self);
   }
 
   cpp_format_char(c, sizeof(c), *self->source);
