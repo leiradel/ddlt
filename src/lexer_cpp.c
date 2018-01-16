@@ -291,11 +291,21 @@ static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const c
     return error(L, self, "invalid character %s in raw string delimiter", c);
   }
 
-  self->source = strchr(self->source + 1, ')');
-
-  if (self->source == NULL || strncmp(self->source + 1, delimiter, count + 1))
+  for (;;)
   {
-    return error(L, self, "missing raw string terminating delimiter )%s", delimiter);
+    self->source = strchr(self->source + 1, ')');
+
+    if (self->source == NULL)
+    {
+      return error(L, self, "missing raw string terminating delimiter )%s", delimiter);
+    }
+
+    if (!strncmp(self->source + 1, delimiter, count + 1))
+    {
+      break;
+    }
+
+    self->source++;
   }
 
   self->source += count + 2;
