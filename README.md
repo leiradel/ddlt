@@ -316,6 +316,26 @@ The return value of `newTemplate` is a Lua function that will run the template w
 
 ## Changelog
 
+### 2.3.1
+
+* Fixed line comments and C preprocessor directives at the end of the file without a trailing newline
+
+### 2.3.0
+
+* Added support for C preprocessor directives
+
+### 2.2.1
+
+* Fixed raw strings not accepting a ')'
+
+### 2.2.0
+
+* Added support for C++ character and multicharacter literals
+
+### 2.1.0
+
+* Added support for string literal prefixes, wide, UTF-8, UTF-16, UTF-32, and for all raw string prefixes
+
 ### 2.0.0
 
 * Made **ddlt** a module
