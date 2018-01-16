@@ -112,10 +112,13 @@ static int line_comment(lua_State* L, lexer_t* self)
     self->source = newline + 1;
     self->line_start = self->source;
     self->line++;
-    return push(L, self, "<linecomment>", 13, lexeme, self->source - lexeme);
+  }
+  else
+  {
+    self->source += strlen(self->source);
   }
 
-  return push(L, self, "<eof>", 5, "<eof>", 5);
+  return push(L, self, "<linecomment>", 13, lexeme, self->source - lexeme);
 }
 
 static int block_comment(lua_State* L, lexer_t* self, const char* end)

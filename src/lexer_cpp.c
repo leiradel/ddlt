@@ -325,10 +325,13 @@ static int cpp_directive(lua_State* L, lexer_t* self)
     self->source = newline + 1;
     self->line_start = self->source;
     self->line++;
-    return push(L, self, "<directive>", 11, lexeme, self->source - lexeme);
+  }
+  else
+  {
+    self->source += strlen(self->source);
   }
 
-  return push(L, self, "<eof>", 5, "<eof>", 5);
+  return push(L, self, "<directive>", 11, lexeme, self->source - lexeme);
 }
 
 static int cpp_next_lua(lua_State* L, lexer_t* self)
