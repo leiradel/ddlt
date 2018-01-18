@@ -279,9 +279,10 @@ static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const c
     return error(L, self, "raw string delimiter longer than 16 characters");
   }
 
-  memcpy(delimiter, self->source, count);
-  delimiter[count] = '"';
-  delimiter[count + 1] = 0;
+  delimiter[0] = ')';
+  memcpy(delimiter + 1, self->source, count);
+  delimiter[count + 1] = '"';
+  delimiter[count + 2] = 0;
 
   self->source += count;
 
@@ -291,21 +292,11 @@ static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const c
     return error(L, self, "invalid character %s in raw string delimiter", c);
   }
 
-  for (;;)
+  self->source = strstr(self->source + 1, delimiter);
+
+  if (self->source == NULL)
   {
-    self->source = strchr(self->source + 1, ')');
-
-    if (self->source == NULL)
-    {
-      return error(L, self, "missing raw string terminating delimiter )%s", delimiter);
-    }
-
-    if (!strncmp(self->source + 1, delimiter, count + 1))
-    {
-      break;
-    }
-
-    self->source++;
+    return error(L, self, "missing raw string terminating delimiter %.*s", count + 1, delimiter);
   }
 
   self->source += count + 2;

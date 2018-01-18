@@ -53,7 +53,7 @@ return function(ddlt)
     end
   end
 
-  ddlt._VERSION = '2.3.1'
+  ddlt._VERSION = '2.3.2'
   ddlt._COPYRIGHT = 'Copyright (C) 2017-2018 Andre Leiradella'
   ddlt._DESCRIPTION = 'A generic lexer to help writing parsers using Lua'
   ddlt._URL = 'https://github.com/leiradel/ddlt'

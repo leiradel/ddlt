@@ -316,6 +316,10 @@ The return value of `newTemplate` is a Lua function that will run the template w
 
 ## Changelog
 
+### 2.3.2
+
+* Better code to check the end of a raw C++ string
+
 ### 2.3.1
 
 * Fixed line comments and C preprocessor directives at the end of the file without a trailing newline
