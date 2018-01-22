@@ -1,7 +1,7 @@
 package = "lua-ddlt"
 version = "2.3-2"
 source = {
-  url = "git@github.com:leiradel/ddlt.git",
+  url = "https://github.com/leiradel/ddlt.git",
   branch = "2/3/2"
 }
 description = {
