@@ -35,6 +35,9 @@ src/templ.o: src/templ.c src/templ.h
 src/boot_lua.h: src/boot.lua
 	xxd -i $< | sed "s@unsigned@const@" | sed "s@src_@@" > $@
 
+install: $(TARGET)
+	cp $(TARGET) $(INST_LIBDIR)
+
 clean:
 	rm -f $(TARGET) src/ddlt.o src/lexer.o src/path.o src/templ.o src/realpath.o src/boot_lua.h
 
