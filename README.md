@@ -2,6 +2,8 @@
 
 **ddlt** is [Lua](https://www.lua.org/) module implementing a generic lexer to help write parsers. It includes a tokenizer capable of recognizing **C++**, **BASIC**, and **Pascal** comments, identifiers, and number and string literals. A template engine is also included to ease the development of transpilers.
 
+**ddlt** is inspired by [DDLParser](https://github.com/macton/DDLParser) and my previous work with serialization for Insomniac.
+
 The tokenizer recognizes:
 
 * **C++**
