@@ -37,6 +37,8 @@ struct lexer_t
   int         source_name_ref;
   int         symbols_ref;
 
+  int         max_symbol_len;
+
   next_t      next;
   block_t     blocks[8];
   unsigned    num_blocks;
@@ -86,12 +88,12 @@ static int push(lua_State* L, const lexer_t* self, const char* token, size_t tok
   return 1;
 }
 
-static int is_symbol(lua_State* L, const lexer_t* self, const char* lexeme, size_t lexeme_length)
+static int is_symbol(lua_State* L, const lexer_t* self, size_t lexeme_length)
 {
   int is_symbol;
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, self->symbols_ref);
-  lua_pushlstring(L, lexeme, lexeme_length);
+  lua_pushlstring(L, self->source, lexeme_length);
   lua_call(L, 1, 1);
   is_symbol = lua_toboolean(L, -1);
   lua_pop(L, 1);
@@ -225,7 +227,7 @@ static int free_form(lua_State* L, lexer_t* self, const char* begin, const char*
 static int l_next(lua_State* L)
 {
   lexer_t* self;
-  unsigned i;
+  int i, maxlen;
   const char* begin;
 
   self = luaL_checkudata(L, 1, "lexer");
@@ -268,18 +270,18 @@ static int l_next(lua_State* L)
     }
   }
 
-  i = 0;
+  maxlen = self->max_symbol_len;
+  begin = self->source;
 
-  while (self->source[i] != 0 && is_symbol(L, self, self->source, i + 1))
-  {
-    i++;
-  }
+  for (i = 0; i < maxlen && begin[i] != 0; i++) /* nothing */;
 
-  if (i > 0)
+  for (; i > 0; i--)
   {
-    begin = self->source;
-    self->source += i;
-    return push(L, self, begin, i, begin, i);
+    if (is_symbol(L, self, i))
+    {
+      self->source += i;
+      return push(L, self, begin, i, begin, i);
+    }
   }
 
   return self->next(L, self);
@@ -365,6 +367,17 @@ int l_newLexer(lua_State* L)
   else
   {
     return luaL_error(L, "isSymbol must be a function");
+  }
+
+  lua_getfield(L, 1, "maxSymbolLength");
+
+  if (lua_isnumber(L, -1))
+  {
+    self->max_symbol_len = lua_tointeger(L, -1);
+  }
+  else
+  {
+    return luaL_error(L, "maxSymbolLength must be an integer");
   }
 
   lua_getfield(L, 1, "language");

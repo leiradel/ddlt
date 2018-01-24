@@ -10,14 +10,19 @@ return function(ddlt)
 
     if not newopts.isSymbol and newopts.symbols then
       local symbols = {}
+      local maxlen = 0
 
       for i = 1, #newopts.symbols do
-        symbols[newopts.symbols[i]] = true
+        local symbol = newopts.symbols[i]
+        symbols[symbol] = true
+        maxlen = math.max(maxlen, #symbol)
       end
 
       newopts.isSymbol = function(symbol)
         return symbols[symbol]
       end
+
+      newopts.maxSymbolLength = maxlen
     end
 
     local lexer, err = newLexer(newopts)
@@ -53,7 +58,7 @@ return function(ddlt)
     end
   end
 
-  ddlt._VERSION = '2.3.2'
+  ddlt._VERSION = '2.3.3'
   ddlt._COPYRIGHT = 'Copyright (C) 2017-2018 Andre Leiradella'
   ddlt._DESCRIPTION = 'A generic lexer to help writing parsers using Lua'
   ddlt._URL = 'https://github.com/leiradel/ddlt'

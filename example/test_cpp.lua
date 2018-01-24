@@ -10,6 +10,7 @@ local parse = function(file)
     file = file,
     language = 'cpp',
     isSymbol = function(lexeme) return false end,
+    maxSymbolLength = 0,
     freeform = {'[{', '}]'}
   }
 

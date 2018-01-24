@@ -76,6 +76,8 @@ The tokenizer can also recognize and return *freeform* blocks, using user-define
 
 `make` should do the job. It will generate a shared object that can be [require](https://www.lua.org/manual/5.3/manual.html#pdf-require)d in Lua code.
 
+**ddlt** is also available as a [rock](https://luarocks.org/modules/leiradel/lua-ddlt), type `luarocks install ddlt` to install it locally in your system.
+
 ## Usage
 
 If have a `test.lua` file
@@ -242,12 +244,13 @@ Your parser can require **ddlt** to access functions to tokenize an input source
 * `source`: a string with the entire source code that will be tokenized.
 * `file`: a string with the name of the object used to create the source code (usually the file name from where the source code was read, this is used for error messages).
 * `isSymbol`: a function which takes a lexeme and returns `true` if that lexeme is a valid symbol.
+* `maxSymbolLength`: an integer with the length of the biggest symbol that `isSymbol` recognizes.
 * `language`: a string containing the language used to parse identifiers, string and number literals, and comments. Supported languages are `'cpp'` for **C++**, `'bas'` for **BASIC**, and `'pas'` for **Pascal**.
 * `freeform`: an array with two elements, the *freeform* delimiters to recognize freeform blocks.
 
 Optionally, the table can have these fields:
 
-* `symbols`: an array of valid symbols, which will be used to automatically provide an `isSymbol` function to the tokenizer.
+* `symbols`: an array of valid symbols, which will be used to automatically provide an `isSymbol` function and the `maxSymbolLength` value to the tokenizer.
 * `keywords`: an array of valid keywords, which will then be returned instead of the generic `<id>` token.
 
 The resulting object only has one method, `next`. It takes a table where the information of the next produced token is stored:
@@ -317,6 +320,10 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 2.3.3
+
+* Fixed an issue where the lexer only returns a symbol if all its prefixes are also valid symbols
 
 ### 2.3.2
 
