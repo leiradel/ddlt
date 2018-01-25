@@ -9,8 +9,7 @@ local parse = function(file)
     source = source,
     file = file,
     language = 'pas',
-    isSymbol = function(lexeme) return false end,
-    maxSymbolLength = 0,
+    symbols = {},
     freeform = {'[{', '}]'}
   }
 

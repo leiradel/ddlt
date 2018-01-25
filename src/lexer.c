@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -37,7 +38,7 @@ struct lexer_t
   int         source_name_ref;
   int         symbols_ref;
 
-  int         max_symbol_len;
+  char*       symbol_chars;
 
   next_t      next;
   block_t     blocks[8];
@@ -86,19 +87,6 @@ static int push(lua_State* L, const lexer_t* self, const char* token, size_t tok
 
   lua_pushvalue(L, 2);
   return 1;
-}
-
-static int is_symbol(lua_State* L, const lexer_t* self, size_t lexeme_length)
-{
-  int is_symbol;
-
-  lua_rawgeti(L, LUA_REGISTRYINDEX, self->symbols_ref);
-  lua_pushlstring(L, self->source, lexeme_length);
-  lua_call(L, 1, 1);
-  is_symbol = lua_toboolean(L, -1);
-  lua_pop(L, 1);
-
-  return is_symbol;
 }
 
 static int line_comment(lua_State* L, lexer_t* self)
@@ -227,8 +215,9 @@ static int free_form(lua_State* L, lexer_t* self, const char* begin, const char*
 static int l_next(lua_State* L)
 {
   lexer_t* self;
-  int i, maxlen;
+  int i;
   const char* begin;
+  size_t length;
 
   self = luaL_checkudata(L, 1, "lexer");
   luaL_checktype(L, 2, LUA_TTABLE);
@@ -270,20 +259,28 @@ static int l_next(lua_State* L)
     }
   }
 
-  maxlen = self->max_symbol_len;
   begin = self->source;
+  length = strspn(self->source, self->symbol_chars);
+  lua_rawgeti(L, LUA_REGISTRYINDEX, self->symbols_ref);
 
-  for (i = 0; i < maxlen && begin[i] != 0; i++) /* nothing */;
-
-  for (; i > 0; i--)
+  while (length > 0)
   {
-    if (is_symbol(L, self, i))
+    lua_pushlstring(L, begin, length);
+    lua_rawget(L, -2);
+    i = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+
+    if (i)
     {
-      self->source += i;
-      return push(L, self, begin, i, begin, i);
+      lua_pop(L, 1);
+      self->source += length;
+      return push(L, self, begin, length, begin, length);
     }
+
+    length--;
   }
 
+  lua_pop(L, 1);
   return self->next(L, self);
 }
 
@@ -309,6 +306,7 @@ static int l_gc(lua_State* L)
   luaL_unref(L, LUA_REGISTRYINDEX, self->source_ref);
   luaL_unref(L, LUA_REGISTRYINDEX, self->source_name_ref);
   luaL_unref(L, LUA_REGISTRYINDEX, self->symbols_ref);
+  free(self->symbol_chars);
   return 0;
 }
 
@@ -316,12 +314,181 @@ static int l_gc(lua_State* L)
 #include "lexer_bas.c"
 #include "lexer_pas.c"
 
+static int init_source(lua_State* L, lexer_t* self)
+{
+  lua_getfield(L, 1, "source");
+
+  if (!lua_isstring(L, -1))
+  {
+    return luaL_error(L, "source must be a string");
+  }
+
+  self->source = lua_tostring(L, -1);
+  self->source_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  self->line_start = self->source;
+  return 0;
+}
+
+static int init_file(lua_State* L, lexer_t* self)
+{
+  lua_getfield(L, 1, "file");
+
+  if (!lua_isstring(L, -1))
+  {
+    return luaL_error(L, "file name must be a string");
+  }
+
+  self->source_name = lua_tostring(L, -1);
+  self->source_name_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  return 0;
+}
+
+static int init_symbol_chars(lua_State* L, lexer_t* self)
+{
+  char used[256 - 32 + 1];
+  char* aux;
+  const char* symbol;
+  int i;
+
+  lua_getfield(L, 1, "symbols");
+
+  if (!lua_istable(L, -1))
+  {
+    return luaL_error(L, "symbols must be a table");
+  }
+
+  memset(used, 0, sizeof(used));
+  lua_pushvalue(L, -1);
+  self->symbols_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  lua_pushnil(L);
+
+  while (lua_next(L, -2) != 0)
+  {
+    if (lua_isstring(L, -2))
+    {
+      symbol = lua_tostring(L, -2);
+
+      while (*symbol != 0)
+      {
+        i = (unsigned char)*symbol++;
+
+        if (i >= 32 && i <= 255)
+        {
+          used[i - 32] = 1;
+        }
+      }
+    }
+
+    lua_pop(L, 1);
+  }
+
+  lua_pop(L, 1);
+
+  for (i = 0, aux = used; i < 256 - 32; i++)
+  {
+    if (used[i] != 0)
+    {
+      *aux++ = i + 32;
+    }
+  }
+
+  *aux = 0;
+  self->symbol_chars = strdup(used);
+
+  if (self->symbol_chars == NULL)
+  {
+    return luaL_error(L, "out of memory");
+  }
+
+  return 0;
+}
+
+static int init_language(lua_State* L, lexer_t* self)
+{
+  const char* language;
+
+  lua_getfield(L, 1, "language");
+
+  if (!lua_isstring(L, -1))
+  {
+    return luaL_error(L, "language name must be a string");
+  }
+
+  language = lua_tostring(L, -1);
+
+  if (!strcmp(language, "cpp"))
+  {
+    cpp_setup_lexer(self);
+  }
+  else if (!strcmp(language, "bas"))
+  {
+    bas_setup_lexer(self);
+  }
+  else if (!strcmp(language, "pas"))
+  {
+    pas_setup_lexer(self);
+  }
+  else
+  {
+    return luaL_error(L, "invalid language %s", language);
+  }
+
+  lua_pop(L, 1);
+  return 0;
+}
+
+static int init_freeform(lua_State* L, lexer_t* self)
+{
+  const char* begin;
+  const char* end;
+
+  lua_getfield(L, 1, "freeform");
+
+  if (!lua_istable(L, -1))
+  {
+    lua_pop(L, 1);
+    return 0;
+  }
+
+  lua_rawgeti(L, -1, 1);
+  begin = lua_tostring(L, -1);
+
+  if (begin == NULL)
+  {
+    return luaL_error(L, "freeform begin symbol must be a string");
+  }
+  else if (strlen(begin) >= sizeof(self->freeform_begin))
+  {
+    return luaL_error(L, "freeform begin symbol is too big, maximum length is %d", sizeof(self->freeform_begin) - 1);
+  }
+
+  lua_rawgeti(L, -2, 2);
+  end = lua_tostring(L, -1);
+
+  if (end == NULL)
+  {
+    return luaL_error(L, "freeform end symbol must be a string");
+  }
+  else if (strlen(end) >= sizeof(self->freeform_end))
+  {
+    return luaL_error(L, "freeform end symbol is too big, maximum length is %d", sizeof(self->freeform_end) - 1);
+  }
+
+  strcpy(self->freeform_begin, begin);
+  strcpy(self->freeform_end, end);
+
+  self->blocks[self->num_blocks].begin = self->freeform_begin;
+  self->blocks[self->num_blocks].end = self->freeform_end;
+  self->blocks[self->num_blocks].type = FREE_FORMAT;
+  self->num_blocks++;
+
+  lua_pop(L, 3);
+  return 0;
+}
+
 int l_newLexer(lua_State* L)
 {
   lexer_t* self;
-  const char* language;
-  const char* begin;
-  const char* end;
 
   if (!lua_istable(L, 1))
   {
@@ -332,120 +499,15 @@ int l_newLexer(lua_State* L)
 
   self = (lexer_t*)lua_newuserdata(L, sizeof(lexer_t));
   self->line = 1;
+  self->source_name_ref = LUA_NOREF;
+  self->source_ref = LUA_NOREF;
+  self->symbols_ref = LUA_NOREF;
 
-  lua_getfield(L, 1, "source");
-
-  if (lua_isstring(L, -1))
-  {
-    self->source = lua_tostring(L, -1);
-    self->source_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    self->line_start = self->source;
-  }
-  else
-  {
-    return luaL_error(L, "source must be a string");
-  }
-
-  lua_getfield(L, 1, "file");
-
-  if (lua_isstring(L, -1))
-  {
-    self->source_name = lua_tostring(L, -1);
-    self->source_name_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
-  else
-  {
-    return luaL_error(L, "file name must be a string");
-  }
-
-  lua_getfield(L, 1, "isSymbol");
-
-  if (lua_isfunction(L, -1))
-  {
-    self->symbols_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
-  else
-  {
-    return luaL_error(L, "isSymbol must be a function");
-  }
-
-  lua_getfield(L, 1, "maxSymbolLength");
-
-  if (lua_isnumber(L, -1))
-  {
-    self->max_symbol_len = lua_tointeger(L, -1);
-  }
-  else
-  {
-    return luaL_error(L, "maxSymbolLength must be an integer");
-  }
-
-  lua_getfield(L, 1, "language");
-
-  if (lua_isstring(L, -1))
-  {
-    language = lua_tostring(L, -1);
-
-    if (!strcmp(language, "cpp"))
-    {
-      cpp_setup_lexer(self);
-    }
-    else if (!strcmp(language, "bas"))
-    {
-      bas_setup_lexer(self);
-    }
-    else if (!strcmp(language, "pas"))
-    {
-      pas_setup_lexer(self);
-    }
-    else
-    {
-      return luaL_error(L, "invalid language %s", language);
-    }
-  }
-  else
-  {
-    return luaL_error(L, "language name must be a string");
-  }
-
-  lua_getfield(L, 1, "freeform");
-
-  if (lua_istable(L, -1))
-  {
-    lua_rawgeti(L, -1, 1);
-    begin = lua_tostring(L, -1);
-
-    if (begin == NULL)
-    {
-      return luaL_error(L, "freeform begin symbol must be a string");
-    }
-    else if (strlen(begin) >= sizeof(self->freeform_begin))
-    {
-      return luaL_error(L, "freeform begin symbol is too big, maximum length is %d", sizeof(self->freeform_begin) - 1);
-    }
-
-    lua_rawgeti(L, -2, 2);
-    end = lua_tostring(L, -1);
-
-    if (end == NULL)
-    {
-      return luaL_error(L, "freeform end symbol must be a string");
-    }
-    else if (strlen(end) >= sizeof(self->freeform_end))
-    {
-      return luaL_error(L, "freeform end symbol is too big, maximum length is %d", sizeof(self->freeform_end) - 1);
-    }
-
-    strcpy(self->freeform_begin, begin);
-    strcpy(self->freeform_end, end);
-
-    self->blocks[self->num_blocks].begin = self->freeform_begin;
-    self->blocks[self->num_blocks].end = self->freeform_end;
-    self->blocks[self->num_blocks].type = FREE_FORMAT;
-    self->num_blocks++;
-  }
-
-  lua_settop(L, 2);
+  init_source(L, self);
+  init_file(L, self);
+  init_symbol_chars(L, self);
+  init_language(L, self);
+  init_freeform(L, self);
 
   if (luaL_newmetatable(L, "lexer") != 0)
   {
