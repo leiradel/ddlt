@@ -319,6 +319,11 @@ The return value of `newTemplate` is a Lua function that will run the template w
 
 ## Changelog
 
+### 2.4.1
+
+* Added a correct rockspec and bumped up the version
+* Fixed the older rockspecs
+
 ### 2.4.0
 
 * Removed the `isSymbol` function that identifies symbols, now the `newLexer` options must contain just the `symbols` array
