@@ -60,6 +60,7 @@ The tokenizer recognizes:
   * Line comments from `//` to the end of the line.
   * Block comments from `(*` to `*)`. Nested comments are *not* supported.
   * Block comments from `{` to `}`. Nested comments are *not* supported.
+  * Directives from `{$` to `}`, or from `(*$` to `*)`.
   * Numbers in the form:
     * `$[0-9a-fA-F]+` as hexadecimal literals
     * `[0-9]+` as decimal literals
@@ -263,6 +264,7 @@ The resulting object only has one method, `next`. It takes a table where the inf
   * `<string>` when it's a string literal
   * `<eof>` when there are no more tokens in the source code
   * `<linecomment>` and `<blockcomment>` when it's a comment as configured in `newLexer`
+  * `<directive>` when it's a C pre-processor or Pascal directive
   * `<freeform>` when it's a *freeform* block as configured in `newLexer`
   * A symbol, as identified by the `symbol` array
   * A keyword, as identified by the `keywords` array when provided
@@ -318,6 +320,11 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 2.5.0
+
+* Added Pascal directives
+* Paved the way to allow for custom directives
 
 ### 2.4.1
 

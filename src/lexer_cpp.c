@@ -303,28 +303,6 @@ static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const c
   return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
 }
 
-static int cpp_directive(lua_State* L, lexer_t* self)
-{
-  const char* lexeme;
-  const char* newline;
-
-  lexeme = self->line_start;
-  newline = strchr(self->source, '\n');
-
-  if (newline != NULL)
-  {
-    self->source = newline + 1;
-    self->line_start = self->source;
-    self->line++;
-  }
-  else
-  {
-    self->source += strlen(self->source);
-  }
-
-  return push(L, self, "<directive>", 11, lexeme, self->source - lexeme);
-}
-
 static int cpp_next_lua(lua_State* L, lexer_t* self)
 {
   char k0, k1, k2;
@@ -396,11 +374,6 @@ static int cpp_next_lua(lua_State* L, lexer_t* self)
     return cpp_get_id(L, self);
   }
 
-  if (*self->source == '#' && strspn(self->line_start, SPACE) == (self->source - self->line_start))
-  {
-    return cpp_directive(L, self);
-  }
-
   cpp_format_char(c, sizeof(c), *self->source);
   return error(L, self, "Invalid character in input: %s", c);
 }
@@ -413,5 +386,9 @@ static void cpp_setup_lexer(lexer_t* self)
   self->blocks[1].begin = "/*";
   self->blocks[1].end = "*/";
   self->blocks[1].type = BLOCK_COMMENT;
-  self->num_blocks = 2;
+  self->blocks[2].begin = "#";
+  self->blocks[2].end = NULL;
+  self->blocks[2].at_start = 0;
+  self->blocks[2].type = DIRECTIVE;
+  self->num_blocks = 3;
 }

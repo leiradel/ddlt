@@ -206,11 +206,19 @@ static void pas_setup_lexer(lexer_t* self)
   self->next = pas_next_lua;
   self->blocks[0].begin = "//";
   self->blocks[0].type = LINE_COMMENT;
-  self->blocks[1].begin = "(*";
+  self->blocks[1].begin = "(*$";
   self->blocks[1].end = "*)";
-  self->blocks[1].type = BLOCK_COMMENT;
-  self->blocks[2].begin = "{";
+  self->blocks[1].at_start = 0;
+  self->blocks[1].type = DIRECTIVE;
+  self->blocks[2].begin = "{$";
   self->blocks[2].end = "}";
-  self->blocks[2].type = BLOCK_COMMENT;
-  self->num_blocks = 3;
+  self->blocks[2].at_start = 0;
+  self->blocks[2].type = DIRECTIVE;
+  self->blocks[3].begin = "(*";
+  self->blocks[3].end = "*)";
+  self->blocks[3].type = BLOCK_COMMENT;
+  self->blocks[4].begin = "{";
+  self->blocks[4].end = "}";
+  self->blocks[4].type = BLOCK_COMMENT;
+  self->num_blocks = 5;
 }

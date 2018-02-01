@@ -6,6 +6,12 @@
 spawning multiple
 lines }
 
+{$line test_cpp.ddl 9}
+
+(*$ifndef DEBUG*)
+  (*$define assert(x) do { x; } while (0)*){$define NDEBUG}
+(*$endif*)
+
 [{
   Free
   form

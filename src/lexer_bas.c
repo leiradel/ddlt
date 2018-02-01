@@ -26,7 +26,7 @@ static int bas_get_id(lua_State* L, lexer_t* self)
   if (length == 3 && tolower(lexeme[0]) == 'r' && tolower(lexeme[1]) == 'e' && tolower(lexeme[2]) == 'm')
   {
     self->source -= 3;
-    return line_comment(L, self);
+    return line_comment(L, self, 0, "<linecomment>");
   }
 
   return push(L, self, "<id>", 4, lexeme, length);
