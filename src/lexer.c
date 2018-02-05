@@ -14,17 +14,55 @@ typedef enum
 {
   LINE_COMMENT,
   BLOCK_COMMENT,
-  FREE_FORMAT,
-  DIRECTIVE
+  FREE_FORM,
+  LINE_DIRECTIVE,
+  BLOCK_DIRECTIVE
 }
 blocktype_t;
 
 typedef struct
 {
-  const char* begin;
+  char filler;
+}
+line_comment_t;
+
+typedef struct
+{
   const char* end;
-  int         at_start;
+}
+block_comment_t;
+
+typedef struct
+{
+  const char* end;
+}
+free_form_t;
+
+typedef struct
+{
+  int at_start;
+}
+line_directive_t;
+
+typedef struct
+{
+  const char* end;
+}
+block_directive_t;
+
+typedef struct
+{
   blocktype_t type;
+  const char* begin;
+
+  union
+  {
+    line_comment_t    line_comment;
+    block_comment_t   block_comment;
+    free_form_t       free_form;
+    line_directive_t  line_directive;
+    block_directive_t block_directive;
+  };
 }
 block_t;
 
@@ -59,6 +97,8 @@ struct lexer_t
 #define BDIGIT   "01"
 #define NOTDELIM " ()\\\t\v\f\n"
 
+#define PUSH(L, self, token, lexeme, length) push(L, self, token, sizeof(token) - 1, lexeme, length)
+
 static int error(lua_State* L, const lexer_t* self, const char* format, ...)
 {
   va_list args;
@@ -91,12 +131,27 @@ static int push(lua_State* L, const lexer_t* self, const char* token, size_t tok
   return 1;
 }
 
-static int line_comment(lua_State* L, lexer_t* self, int spaces_important, const char* token)
+static int line_comment(lua_State* L, lexer_t* self, const block_t* block, int is_directive)
 {
   const char* lexeme;
   const char* newline;
 
-  lexeme = spaces_important ? self->line_start : self->source;
+  (void)line_comment;
+
+  if (is_directive)
+  {
+    if (block->line_directive.at_start && self->source != self->line_start)
+    {
+      return error(L, self, "directives must start at the beginning of the line");
+    }
+
+    if (strspn(self->line_start, SPACE) != (self->source - self->line_start))
+    {
+      return error(L, self, "directives must be the only thing in a line");
+    }
+  }
+
+  lexeme = is_directive ? self->line_start : self->source;
   newline = strchr(lexeme, '\n');
 
   if (newline != NULL)
@@ -110,16 +165,25 @@ static int line_comment(lua_State* L, lexer_t* self, int spaces_important, const
     self->source += strlen(self->source);
   }
 
-  return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
+  if (is_directive)
+  {
+    return PUSH(L, self, "<linedirective>", lexeme, self->source - lexeme);
+  }
+  else
+  {
+    return PUSH(L, self, "<linecomment>", lexeme, self->source - lexeme);
+  }
 }
 
-static int block_comment(lua_State* L, lexer_t* self, const char* end, const char* token)
+static int block_comment(lua_State* L, lexer_t* self, const block_t* block, int is_directive)
 {
   const char* lexeme;
+  const char* end;
   char reject[3];
   size_t end_len;
 
   lexeme = self->source;
+  end = is_directive ? block->block_directive.end : block->block_comment.end;
 
   reject[0] = '\n';
   reject[1] = *end;
@@ -143,7 +207,15 @@ static int block_comment(lua_State* L, lexer_t* self, const char* end, const cha
       if (!strncmp(self->source, end + 1, end_len))
       {
         self->source += end_len;
-        return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
+
+        if (is_directive)
+        {
+          return PUSH(L, self, "<blockdirective>", lexeme, self->source - lexeme);
+        }
+        else
+        {
+          return PUSH(L, self, "<blockcomment>", lexeme, self->source - lexeme);
+        }
       }
     }
     else
@@ -153,31 +225,18 @@ static int block_comment(lua_State* L, lexer_t* self, const char* end, const cha
   }
 }
 
-static int directive(lua_State* L, lexer_t* self, const char* end, int at_start)
-{
-  if (at_start && self->source != self->line_start)
-  {
-    return error(L, self, "directives must start at the beginning of the line");
-  }
-
-  if (end == NULL)
-  {
-    return line_comment(L, self, 1, "<directive>");
-  }
-  else
-  {
-    return block_comment(L, self, end, "<directive>");
-  }
-}
-
-static int free_form(lua_State* L, lexer_t* self, const char* begin, const char* end)
+static int free_form(lua_State* L, lexer_t* self, const block_t* block)
 {
   const char* lexeme;
+  const char* begin;
+  const char* end;
   char reject[4];
   size_t begin_len, end_len;
   unsigned nested = 0;
 
   lexeme = self->source;
+  begin = block->begin;
+  end = block->free_form.end;
 
   reject[0] = '\n';
   reject[1] = *begin;
@@ -218,7 +277,7 @@ static int free_form(lua_State* L, lexer_t* self, const char* begin, const char*
 
         if (nested == 0)
         {
-          return push(L, self, "<freeform>", 10, lexeme, self->source - lexeme);
+          return PUSH(L, self, "<freeform>", lexeme, self->source - lexeme);
         }
 
         nested--;
@@ -234,6 +293,7 @@ static int free_form(lua_State* L, lexer_t* self, const char* begin, const char*
 static int l_next(lua_State* L)
 {
   lexer_t* self;
+  block_t* block;
   int i;
   const char* begin;
   size_t length;
@@ -262,42 +322,21 @@ static int l_next(lua_State* L)
   }
 
   self->la_line = self->line;
+  block = self->blocks;
 
-  for (i = 0; i < self->num_blocks; i++)
+  for (i = 0; i < self->num_blocks; i++, block++)
   {
-    begin = self->blocks[i].begin;
+    begin = block->begin;
 
     if (!strncmp(self->source, begin, strlen(begin)))
     {
-      switch (self->blocks[i].type)
+      switch (block->type)
       {
-      case LINE_COMMENT:  return line_comment(L, self, 0, "<linecomment>");
-      case BLOCK_COMMENT: return block_comment(L, self, self->blocks[i].end, "<blockcomment>");
-      case FREE_FORMAT:   return free_form(L, self, begin, self->blocks[i].end);
-
-      case DIRECTIVE:
-        printf("=== at=%d src=%p str=%p end=%s spn=%zu\n",
-          self->blocks[i].at_start,
-          self->source,
-          self->line_start,
-          self->blocks[i].end == NULL ? "--" : self->blocks[i].end,
-          strspn(self->line_start, SPACE)
-        );
-
-        if (self->blocks[i].at_start && self->source != self->line_start)
-        {
-          /* if the directive must be at the beginning of the line but isn't, it's not a directive */
-          break;
-        }
-
-        if (self->blocks[i].end == NULL && strspn(self->line_start, SPACE) != (self->source - self->line_start))
-        {
-          /* if the directive ends at the new line but the directive has extraneous characters before it,
-             it's not a directive */
-          break;
-        }
-
-        return directive(L, self, self->blocks[i].end, self->blocks[i].at_start);
+      case LINE_COMMENT:    return line_comment(L, self, block, 0);
+      case BLOCK_COMMENT:   return block_comment(L, self, block, 0);
+      case FREE_FORM:       return free_form(L, self, block);
+      case LINE_DIRECTIVE:  return line_comment(L, self, block, 1);
+      case BLOCK_DIRECTIVE: return block_comment(L, self, block, 1);
       }
     }
   }
@@ -520,9 +559,9 @@ static int init_freeform(lua_State* L, lexer_t* self)
   strcpy(self->freeform_begin, begin);
   strcpy(self->freeform_end, end);
 
+  self->blocks[self->num_blocks].type = FREE_FORM;
   self->blocks[self->num_blocks].begin = self->freeform_begin;
-  self->blocks[self->num_blocks].end = self->freeform_end;
-  self->blocks[self->num_blocks].type = FREE_FORMAT;
+  self->blocks[self->num_blocks].free_form.end = self->freeform_end;
   self->num_blocks++;
 
   lua_pop(L, 3);

@@ -20,7 +20,7 @@ static int cpp_get_id(lua_State* L, lexer_t* self)
   
   lexeme = self->source;
   self->source += strspn(self->source, ALNUM);
-  return push(L, self, "<id>", 4, lexeme, self->source - lexeme);
+  return PUSH(L, self, "<id>", lexeme, self->source - lexeme);
 }
 
 static int cpp_get_number(lua_State* L, lexer_t* self)
@@ -48,6 +48,20 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
       {
         cpp_format_char(c, sizeof(c), *self->source);
         return error(L, self, "invalid digit %s in hexadecimal constant", c);
+      }
+
+      self->source += length;
+    }
+    else if (*self->source == 'b' || *self->source == 'B')
+    {
+      self->source++;
+      base = 2;
+      length = strspn(self->source, BDIGIT);
+
+      if (length == 0)
+      {
+        cpp_format_char(c, sizeof(c), *self->source);
+        return error(L, self, "invalid digit %s in binary constant", c);
       }
 
       self->source += length;
@@ -151,10 +165,11 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
 
   switch (base)
   {
-  case 0:  return push(L, self, "<float>", 7, lexeme, length);
-  case 8:  return push(L, self, "<octal>", 7, lexeme, length);
-  case 10: return push(L, self, "<decimal>", 9, lexeme, length);
-  case 16: return push(L, self, "<hexadecimal>", 13, lexeme, length);
+  case 0:  return PUSH(L, self, "<float>", lexeme, length);
+  case 2:  return PUSH(L, self, "<binary>", lexeme, length);
+  case 8:  return PUSH(L, self, "<octal>", lexeme, length);
+  case 10: return PUSH(L, self, "<decimal>", lexeme, length);
+  case 16: return PUSH(L, self, "<hexadecimal>", lexeme, length);
   }
 
   /* should never happen */
@@ -380,15 +395,17 @@ static int cpp_next_lua(lua_State* L, lexer_t* self)
 
 static void cpp_setup_lexer(lexer_t* self)
 {
-  self->next = cpp_next_lua;
-  self->blocks[0].begin = "//";
   self->blocks[0].type = LINE_COMMENT;
-  self->blocks[1].begin = "/*";
-  self->blocks[1].end = "*/";
+  self->blocks[0].begin = "//";
+
   self->blocks[1].type = BLOCK_COMMENT;
+  self->blocks[1].begin = "/*";
+  self->blocks[1].block_comment.end = "*/";
+
+  self->blocks[2].type = LINE_DIRECTIVE;
   self->blocks[2].begin = "#";
-  self->blocks[2].end = NULL;
-  self->blocks[2].at_start = 0;
-  self->blocks[2].type = DIRECTIVE;
+  self->blocks[2].line_directive.at_start = 0;
+
   self->num_blocks = 3;
+  self->next = cpp_next_lua;
 }

@@ -18,6 +18,7 @@ static int bas_get_id(lua_State* L, lexer_t* self)
 {
   const char* lexeme;
   size_t length;
+  block_t block;
   
   lexeme = self->source;
   self->source += strspn(self->source, ALNUM);
@@ -26,10 +27,14 @@ static int bas_get_id(lua_State* L, lexer_t* self)
   if (length == 3 && tolower(lexeme[0]) == 'r' && tolower(lexeme[1]) == 'e' && tolower(lexeme[2]) == 'm')
   {
     self->source -= 3;
-    return line_comment(L, self, 0, "<linecomment>");
+
+    block.type = LINE_COMMENT;
+    block.begin = "REM";
+
+    return line_comment(L, self, &block, 0);
   }
 
-  return push(L, self, "<id>", 4, lexeme, length);
+  return PUSH(L, self, "<id>", lexeme, length);
 }
 
 static int bas_get_number(lua_State* L, lexer_t* self)
@@ -187,11 +192,11 @@ static int bas_get_number(lua_State* L, lexer_t* self)
 
   switch (base)
   {
-  case 0:  return push(L, self, "<float>", 7, lexeme, length);
-  case 2:  return push(L, self, "<binary>", 8, lexeme, length);
-  case 8:  return push(L, self, "<octal>", 7, lexeme, length);
-  case 10: return push(L, self, "<decimal>", 9, lexeme, length);
-  case 16: return push(L, self, "<hexadecimal>", 13, lexeme, length);
+  case 0:  return PUSH(L, self, "<float>", lexeme, length);
+  case 2:  return PUSH(L, self, "<binary>", lexeme, length);
+  case 8:  return PUSH(L, self, "<octal>", lexeme, length);
+  case 10: return PUSH(L, self, "<decimal>", lexeme, length);
+  case 16: return PUSH(L, self, "<hexadecimal>", lexeme, length);
   }
 
   /* should never happen */
@@ -221,7 +226,7 @@ static int bas_get_string(lua_State* L, lexer_t* self)
     self->source += 2;
   }
 
-  return push(L, self, "<string>", 8, lexeme, self->source - lexeme);
+  return PUSH(L, self, "<string>", lexeme, self->source - lexeme);
 }
 
 static int bas_next_lua(lua_State* L, lexer_t* self)
@@ -260,8 +265,9 @@ static int bas_next_lua(lua_State* L, lexer_t* self)
 
 static void bas_setup_lexer(lexer_t* self)
 {
-  self->next = bas_next_lua;
-  self->blocks[0].begin = "'";
   self->blocks[0].type = LINE_COMMENT;
+  self->blocks[0].begin = "'";
+
   self->num_blocks = 1;
+  self->next = bas_next_lua;
 }

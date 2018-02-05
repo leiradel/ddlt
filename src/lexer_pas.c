@@ -20,7 +20,7 @@ static int pas_get_id(lua_State* L, lexer_t* self)
   
   lexeme = self->source;
   self->source += strspn(self->source, ALNUM);
-  return push(L, self, "<id>", 4, lexeme, self->source - lexeme);
+  return PUSH(L, self, "<id>", lexeme, self->source - lexeme);
 }
 
 static int pas_get_number(lua_State* L, lexer_t* self)
@@ -111,11 +111,11 @@ static int pas_get_number(lua_State* L, lexer_t* self)
 
   switch (base)
   {
-  case 0:  return push(L, self, "<float>", 7, lexeme, length);
-  case 2:  return push(L, self, "<binary>", 8, lexeme, length);
-  case 8:  return push(L, self, "<octal>", 7, lexeme, length);
-  case 10: return push(L, self, "<decimal>", 9, lexeme, length);
-  case 16: return push(L, self, "<hexadecimal>", 13, lexeme, length);
+  case 0:  return PUSH(L, self, "<float>", lexeme, length);
+  case 2:  return PUSH(L, self, "<binary>", lexeme, length);
+  case 8:  return PUSH(L, self, "<octal>", lexeme, length);
+  case 10: return PUSH(L, self, "<decimal>", lexeme, length);
+  case 16: return PUSH(L, self, "<hexadecimal>", lexeme, length);
   }
 
   /* should never happen */
@@ -175,7 +175,7 @@ control:
     self->source++;
   }
 
-  return push(L, self, "<string>", 8, lexeme, self->source - lexeme);
+  return PUSH(L, self, "<string>", lexeme, self->source - lexeme);
 }
 
 static int pas_next_lua(lua_State* L, lexer_t* self)
@@ -203,22 +203,25 @@ static int pas_next_lua(lua_State* L, lexer_t* self)
 
 static void pas_setup_lexer(lexer_t* self)
 {
-  self->next = pas_next_lua;
-  self->blocks[0].begin = "//";
   self->blocks[0].type = LINE_COMMENT;
+  self->blocks[0].begin = "//";
+
+  self->blocks[1].type = BLOCK_DIRECTIVE;
   self->blocks[1].begin = "(*$";
-  self->blocks[1].end = "*)";
-  self->blocks[1].at_start = 0;
-  self->blocks[1].type = DIRECTIVE;
+  self->blocks[1].block_directive.end = "*)";
+
+  self->blocks[2].type = BLOCK_DIRECTIVE;
   self->blocks[2].begin = "{$";
-  self->blocks[2].end = "}";
-  self->blocks[2].at_start = 0;
-  self->blocks[2].type = DIRECTIVE;
-  self->blocks[3].begin = "(*";
-  self->blocks[3].end = "*)";
+  self->blocks[2].block_directive.end = "}";
+
   self->blocks[3].type = BLOCK_COMMENT;
-  self->blocks[4].begin = "{";
-  self->blocks[4].end = "}";
+  self->blocks[3].begin = "(*";
+  self->blocks[3].block_comment.end = "*)";
+
   self->blocks[4].type = BLOCK_COMMENT;
+  self->blocks[4].begin = "{";
+  self->blocks[4].block_comment.end = "}";
+
   self->num_blocks = 5;
+  self->next = pas_next_lua;
 }

@@ -264,7 +264,7 @@ The resulting object only has one method, `next`. It takes a table where the inf
   * `<string>` when it's a string literal
   * `<eof>` when there are no more tokens in the source code
   * `<linecomment>` and `<blockcomment>` when it's a comment as configured in `newLexer`
-  * `<directive>` when it's a C pre-processor or Pascal directive
+  * `<linedirective>` and `<blockdirective>` when it's a C pre-processor or Pascal directive
   * `<freeform>` when it's a *freeform* block as configured in `newLexer`
   * A symbol, as identified by the `symbol` array
   * A keyword, as identified by the `keywords` array when provided
@@ -273,7 +273,7 @@ The resulting object only has one method, `next`. It takes a table where the inf
 
 `next` will also return the same table passed to it as an argument if successful. In case of errors, it will return `nil`, plus a string describing the error. The error message will always be in the format `<file>:<line>: message`, which is the standard way to describe errors in compilers.
 
-Line and block comment, being returned by the tokenizer, allow for iteresting things like copying preprocessor directives to the output or processing them as they appear. If comments are not wanted, remove them from the token stream in your `match` parser method, i.e.:
+Line and block comments and directives, being returned by the tokenizer, allow for iteresting things like copying preprocessor directives to the output or processing them as they appear. If they are not wanted, remove them from the token stream in your `match` parser method, i.e.:
 
 ```Lua
 local lexer = newLexer{
@@ -320,6 +320,13 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 2.6.0
+
+* Added binary number literals to C++
+* Simpler code to deal with directives
+* Diferentiate line and block directives
+* Removed debug code from `lexer.c`
 
 ### 2.5.0
 
