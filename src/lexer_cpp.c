@@ -29,7 +29,7 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
   const char* lexeme;
   unsigned suffix;
   char c[8];
-  size_t length;
+  size_t length, saved;
 
   lexeme = self->source;
   base = 10;
@@ -40,9 +40,18 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
 
     if (*self->source == 'x' || *self->source == 'X')
     {
-      self->source++;
+      if (*++self->source == '\'')
+      {
+        return error(L, self, "invalid integer suffix \"x'\"");
+      }
+
       base = 16;
-      length = strspn(self->source, XDIGIT);
+      length = strspn(self->source, XDIGIT "'");
+
+      while (length != 0 && self->source[length - 1] == '\'')
+      {
+        length--;
+      }
 
       if (length == 0)
       {
@@ -54,9 +63,18 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
     }
     else if (*self->source == 'b' || *self->source == 'B')
     {
-      self->source++;
+      if (*++self->source == '\'')
+      {
+        return error(L, self, "invalid integer suffix \"b'\"");
+      }
+
       base = 2;
-      length = strspn(self->source, BDIGIT);
+      length = strspn(self->source, BDIGIT "'");
+
+      while (length != 0 && self->source[length - 1] == '\'')
+      {
+        length--;
+      }
 
       if (length == 0)
       {
@@ -68,7 +86,12 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
     }
     else
     {
-      length = strspn(self->source, ODIGIT);
+      length = strspn(self->source, ODIGIT "'");
+
+      while (length != 0 && self->source[length - 1] == '\'')
+      {
+        length--;
+      }
 
       if (strspn(self->source + length, DIGIT) != 0)
       {
@@ -85,13 +108,25 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
   }
   else if (*self->source != '.')
   {
-    self->source += strspn(self->source, DIGIT);
+    length = strspn(self->source, DIGIT "'");
+
+    while (length != 0 && self->source[length - 1] == '\'')
+    {
+      length--;
+    }
+
+    self->source += length;
   }
 
   if (base == 10 && *self->source == '.')
   {
-    self->source++;
-    self->source += strspn(self->source, DIGIT);
+    if (*++self->source == '\'')
+    {
+      return error(L, self, "digit separator at start of digit sequence");
+    }
+
+    self->source += strspn(self->source, DIGIT "'");
+    self->source -= self->source[-1] == '\'';
     base = 0; /* indicates a floating point constant */
   }
 
@@ -105,13 +140,19 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
       self->source++;
     }
 
-    length = strspn(self->source, DIGIT);
+    if (*self->source == '\'')
+    {
+      return error(L, self, "digit separator at start of digit sequence");
+    }
+
+    length = strspn(self->source, DIGIT "'");
 
     if (length == 0)
     {
       return error(L, self, "exponent has no digits");
     }
 
+    length -= self->source[length - 1] == '\'';
     self->source += length;
   }
 
@@ -120,13 +161,12 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
     return error(L, self, "unsigned int must have 32 bits");
   }
 
-  length = strspn(self->source, "FLUflu");
+  saved = length = strspn(self->source, ALNUM);
   suffix = 0;
   
   while (length-- != 0)
   {
-    suffix = suffix << 8 | tolower(*self->source);
-    self->source++;
+    suffix = suffix << 8 | tolower(*self->source++);
   }
   
   if (base == 0)
@@ -139,7 +179,10 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
       break;
     
     default:
-      return error(L, self, "invalid float suffix");
+      if (self->source[-saved] != '_')
+      {
+        return error(L, self, "invalid float suffix \"%.*s\"", (int)saved, self->source - saved);
+      }
     }
   }
   else
@@ -157,7 +200,10 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
       break;
     
     default:
-      return error(L, self, "invalid integer suffix");
+      if (self->source[-saved] != '_')
+      {
+        return error(L, self, "invalid integer suffix \"%.*s\"", (int)saved, self->source - saved);
+      }
     }
   }
 
@@ -176,10 +222,36 @@ static int cpp_get_number(lua_State* L, lexer_t* self)
   return error(L, self, "internal error, base is %d", base);
 }
 
+static int cpp_get_string_suffix(lua_State* L, lexer_t* self, const char* lexeme, const char* token)
+{
+  size_t length, saved;
+  unsigned suffix;
+  
+  if (sizeof(suffix) < 4)
+  {
+    return error(L, self, "unsigned int must have 32 bits");
+  }
+
+  saved = length = strspn(self->source, ALNUM);
+  suffix = 0;
+  
+  while (length-- != 0)
+  {
+    suffix = suffix << 8 | tolower(*self->source++);
+  }
+  
+  if (saved != 0 && self->source[-saved] != '_')
+  {
+    return error(L, self, "invalid string suffix \"%.*s\"", (int)saved, self->source - saved);
+  }
+
+  return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
+}
+
 static int cpp_get_string(lua_State* L, lexer_t* self, unsigned skip, int quote, const char* prefix)
 {
   const char* lexeme;
-  char reject[3];
+  char reject[4];
   size_t length;
   char c[8];
   char token[32];
@@ -189,7 +261,8 @@ static int cpp_get_string(lua_State* L, lexer_t* self, unsigned skip, int quote,
 
   reject[0] = quote;
   reject[1] = '\\';
-  reject[2] = 0;
+  reject[2] = '\n';
+  reject[3] = 0;
 
   for (;;)
   {
@@ -269,12 +342,12 @@ static int cpp_get_string(lua_State* L, lexer_t* self, unsigned skip, int quote,
     }
     else
     {
-      return error(L, self, "unterminated string");
+      return error(L, self, "unterminated %s", quote == '"' ? "string" : "char");
     }
   }
 
-  length = snprintf(token, sizeof(token), "<%s%s>", prefix, quote == '"' ? "string" : "char");
-  return push(L, self, token, length, lexeme, self->source - lexeme);
+  snprintf(token, sizeof(token), "<%s%s>", prefix, quote == '"' ? "string" : "char");
+  return cpp_get_string_suffix(L, self, lexeme, token);
 }
 
 static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const char* token)
@@ -315,7 +388,7 @@ static int cpp_get_rawstring(lua_State* L, lexer_t* self, unsigned skip, const c
   }
 
   self->source += count + 2;
-  return push(L, self, token, strlen(token), lexeme, self->source - lexeme);
+  return cpp_get_string_suffix(L, self, lexeme, token);
 }
 
 static int cpp_next_lua(lua_State* L, lexer_t* self)

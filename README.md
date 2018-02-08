@@ -20,6 +20,7 @@ The tokenizer recognizes:
     * `[0-9]+[Ee][+-]?[0-9]+` as float literals
     * Integer literals can be suffixed with `u`, `ul`, `ull`, `l`, `lu`, `ll`, or `llu`, in either lower and upper case
     * Float literals can be suffixed with `f` or `l`, in either lower and upper case
+    * All numbers can have the decimal separator `'` at any place, except at the beginning of digit sequences or at the end of the literal
   * Strings, including the following [escape sequences](https://en.wikipedia.org/wiki/Escape_sequences_in_C):
     * `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\\`, `\'`, `\"`, `\?`
     * `\x` followed by at least one hexadecimal digit
@@ -41,6 +42,7 @@ The tokenizer recognizes:
     * `u8'...'` UTF-8 encoded character
     * `u'...'` UTF-16 encoded character
     * `U'...'` UTF-32 encoded character
+  * Number, string, and character literals can have user-defined suffixes in the form `_[A-Za-z_0-9]*`
 * **BASIC**
   * Line comments from `'` to the end of the line.
   * Line comments from `REM`, independent of case, to the end of the line.
@@ -320,6 +322,14 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 2.7.0
+
+* Fixed not erroring on unterminated strings
+* Added decimal deparator to C++
+* Better handling of suffixes
+* Added user-defined number literal suffixes to C++ numbers and strings
+* Run `boot.lua` through [LuaSrcDiet](https://github.com/jirutka/luasrcdiet) to save space
 
 ### 2.6.0
 

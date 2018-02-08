@@ -32,8 +32,12 @@ src/path.o: src/path.c src/path.h
 
 src/templ.o: src/templ.c src/templ.h
 
-src/boot_lua.h: src/boot.lua
-	xxd -i $< | sed "s@unsigned@const@" | sed "s@src_@@" > $@
+src/boot_lua.h: src/boot_diet.lua
+	xxd -i $< | sed "s@unsigned@const@" | sed "s@src_@@" | sed "s@boot_diet@boot@" > $@
+
+# luarocks install luasrcdiet
+src/boot_diet.lua: src/boot.lua
+	LuaSrcDiet $< -o $@
 
 install: $(TARGET)
 	cp $(TARGET) $(INST_LIBDIR)

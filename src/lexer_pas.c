@@ -136,15 +136,18 @@ static int pas_get_string(lua_State* L, lexer_t* self)
 
   for (;;)
   {
-    self->source = strchr(self->source, '\'');
+    self->source += strcspn(self->source, "'\n");
 
-    if (self->source == NULL)
+    if (*self->source == '\'')
     {
-      return error(L, self, "unterminated string");
-    }
-    else if (self->source[1] == '#')
-    {
-      self->source += 2;
+      self->source++;
+
+      if (*self->source != '#')
+      {
+        break;
+      }
+
+      self->source++;
 
 control:
       length = strspn(self->source, DIGIT);
@@ -165,14 +168,13 @@ control:
       {
         break;
       }
+
+      self->source++;
     }
     else
     {
-      self->source++;
-      break;
+      return error(L, self, "unterminated string");
     }
-
-    self->source++;
   }
 
   return PUSH(L, self, "<string>", lexeme, self->source - lexeme);

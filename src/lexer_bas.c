@@ -43,7 +43,7 @@ static int bas_get_number(lua_State* L, lexer_t* self)
   const char* lexeme;
   unsigned suffix;
   char c[8];
-  size_t length;
+  size_t length, saved;
 
   lexeme = self->source;
   base = 10;
@@ -132,13 +132,12 @@ static int bas_get_number(lua_State* L, lexer_t* self)
     return error(L, self, "unsigned int must have 32 bits");
   }
 
-  length = strspn(self->source, "FRDfrd@!#SUILsuil%&");
+  saved = length = strspn(self->source, ALNUM "@!#%&");
   suffix = 0;
   
   while (length-- != 0)
   {
-    suffix = suffix << 8 | tolower(*self->source);
-    self->source++;
+    suffix = suffix << 8 | tolower(*self->source++);
   }
   
   if (base == 0)
@@ -155,7 +154,7 @@ static int bas_get_number(lua_State* L, lexer_t* self)
       break;
     
     default:
-      return error(L, self, "invalid float suffix");
+      return error(L, self, "invalid suffix \"%.*s\"", (int)saved, self->source - saved);
     }
   }
   else
@@ -184,7 +183,7 @@ static int bas_get_number(lua_State* L, lexer_t* self)
       break;
     
     default:
-      return error(L, self, "invalid integer suffix");
+      return error(L, self, "invalid suffix \"%.*s\"", (int)saved, self->source - saved);
     }
   }
 
@@ -211,19 +210,22 @@ static int bas_get_string(lua_State* L, lexer_t* self)
 
   for (;;)
   {
-    self->source = strchr(self->source, '"');
+    self->source += strcspn(self->source, "\"\n");
 
-    if (self->source == NULL)
+    if (*self->source == '"')
+    {
+      if (self->source[1] != '"')
+      {
+        self->source++;
+        break;
+      }
+
+      self->source += 2;
+    }
+    else
     {
       return error(L, self, "unterminated string");
     }
-    else if (self->source[1] != '"')
-    {
-      self->source++;
-      break;
-    }
-
-    self->source += 2;
   }
 
   return PUSH(L, self, "<string>", lexeme, self->source - lexeme);

@@ -55,6 +55,8 @@ _
 1lu
 1llu
 1ULL
+1_km
+1_
 
 ""
 "\""
@@ -75,3 +77,6 @@ L'wchar_t character'
 u8'UTF-8 encoded character'
 u'char16_t character'
 U'char32_t character'
+"press"_zx81
+"press"_
+R"raw(press)raw"_ebcdic
