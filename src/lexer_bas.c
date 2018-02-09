@@ -29,7 +29,7 @@ static int bas_get_id(lua_State* L, lexer_t* self)
     self->source -= 3;
 
     block.type = LINE_COMMENT;
-    block.begin = "REM";
+    strcpy(block.begin, "REM");
 
     return line_comment(L, self, &block, 0);
   }
@@ -268,7 +268,7 @@ static int bas_next_lua(lua_State* L, lexer_t* self)
 static void bas_setup_lexer(lexer_t* self)
 {
   self->blocks[0].type = LINE_COMMENT;
-  self->blocks[0].begin = "'";
+  strcpy(self->blocks[0].begin, "'");
 
   self->num_blocks = 1;
   self->next = bas_next_lua;

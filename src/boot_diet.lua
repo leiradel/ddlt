@@ -37,7 +37,7 @@ else
 return a
 end
 end
-t._VERSION='2.7.0'
+t._VERSION='2.8.0'
 t._COPYRIGHT='Copyright (C) 2017-2018 Andre Leiradella'
 t._DESCRIPTION='A generic lexer to help writing parsers using Lua'
 t._URL='https://github.com/leiradel/ddlt'

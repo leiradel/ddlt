@@ -469,14 +469,14 @@ static int cpp_next_lua(lua_State* L, lexer_t* self)
 static void cpp_setup_lexer(lexer_t* self)
 {
   self->blocks[0].type = LINE_COMMENT;
-  self->blocks[0].begin = "//";
+  strcpy(self->blocks[0].begin, "//");
 
   self->blocks[1].type = BLOCK_COMMENT;
-  self->blocks[1].begin = "/*";
-  self->blocks[1].block_comment.end = "*/";
+  strcpy(self->blocks[1].begin, "/*");
+  strcpy(self->blocks[1].block_comment.end, "*/");
 
   self->blocks[2].type = LINE_DIRECTIVE;
-  self->blocks[2].begin = "#";
+  strcpy(self->blocks[2].begin, "#");
   self->blocks[2].line_directive.at_start = 0;
 
   self->num_blocks = 3;

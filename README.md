@@ -99,7 +99,7 @@ local parse = function(file)
     language = 'cpp',
     symbols = {'{', '}', ',', ';', '='},
     keywords = {'enum', 'struct', 'string', 'int', 'float'},
-    freeform = {'[{', '}]'}
+    freeform = {{'[{', '}]'}}
   }
 
   local tokens = {}
@@ -322,6 +322,10 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 2.8.0
+
+* *Breaking change*: the `freeform` field of the lexer options table can now specify multiple delimiters, i.e. `{{'[{', '}]'}, {'(', ')'}}`
 
 ### 2.7.0
 

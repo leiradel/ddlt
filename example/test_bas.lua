@@ -10,7 +10,7 @@ local parse = function(file)
     file = file,
     language = 'bas',
     symbols = {},
-    freeform = {'[{', '}]'}
+    freeform = {{'[{', '}]'}}
   }
 
   local tokens = {}

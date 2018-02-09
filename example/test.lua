@@ -11,7 +11,7 @@ local parse = function(file)
     language = 'cpp',
     symbols = {'{', '}', ',', ';', '='},
     keywords = {'enum', 'struct', 'string', 'int', 'float'},
-    freeform = {'[{', '}]'}
+    freeform = {{'[{', '}]'}}
   }
 
   local tokens = {}

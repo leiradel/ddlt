@@ -6,6 +6,9 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+#define MAX_BLOCKS 16
+#define DELIM_SIZE 16
+
 typedef struct lexer_t lexer_t;
 
 typedef int (*next_t)(lua_State*, lexer_t*);
@@ -28,13 +31,13 @@ line_comment_t;
 
 typedef struct
 {
-  const char* end;
+  char end[DELIM_SIZE];
 }
 block_comment_t;
 
 typedef struct
 {
-  const char* end;
+  char end[DELIM_SIZE];
 }
 free_form_t;
 
@@ -46,14 +49,14 @@ line_directive_t;
 
 typedef struct
 {
-  const char* end;
+  char end[DELIM_SIZE];
 }
 block_directive_t;
 
 typedef struct
 {
   blocktype_t type;
-  const char* begin;
+  char        begin[DELIM_SIZE];
 
   union
   {
@@ -81,11 +84,8 @@ struct lexer_t
   char*       symbol_chars;
 
   next_t      next;
-  block_t     blocks[8];
+  block_t     blocks[MAX_BLOCKS];
   unsigned    num_blocks;
-
-  char        freeform_begin[16];
-  char        freeform_end[16];
 };
 
 #define SPACE    " \f\r\t\v" /* \n is treated separately to keep track of the line number */
@@ -523,6 +523,7 @@ static int init_freeform(lua_State* L, lexer_t* self)
 {
   const char* begin;
   const char* end;
+  size_t length;
 
   lua_getfield(L, 1, "freeform");
 
@@ -532,40 +533,64 @@ static int init_freeform(lua_State* L, lexer_t* self)
     return 0;
   }
 
-  lua_rawgeti(L, -1, 1);
-  begin = lua_tostring(L, -1);
-
-  if (begin == NULL)
+  for (int i = 1;; i++)
   {
-    return luaL_error(L, "freeform begin symbol must be a string");
+    lua_rawgeti(L, -1, i);
+
+    if (lua_isnil(L, -1))
+    {
+      lua_pop(L, 2);
+
+      if (i == 1)
+      {
+        return luaL_error(L, "freeform array is empty");
+      }
+
+      return 0;
+    }
+
+    if (!lua_istable(L, -1))
+    {
+      lua_pop(L, 2);
+      return luaL_error(L, "freeform array element %d is not a table", i);
+    }
+
+    lua_rawgeti(L, -1, 1);
+    begin = lua_tolstring(L, -1, &length);
+
+    if (begin == NULL)
+    {
+      return luaL_error(L, "freeform begin symbol must be a string");
+    }
+    else if (length >= DELIM_SIZE)
+    {
+      return luaL_error(L, "freeform begin symbol is too big, maximum length is %d", DELIM_SIZE - 1);
+    }
+
+    lua_rawgeti(L, -2, 2);
+    end = lua_tolstring(L, -1, &length);
+
+    if (end == NULL)
+    {
+      return luaL_error(L, "freeform end symbol must be a string");
+    }
+    else if (length >= DELIM_SIZE)
+    {
+      return luaL_error(L, "freeform end symbol is too big, maximum length is %d", DELIM_SIZE - 1);
+    }
+
+    if (self->num_blocks == MAX_BLOCKS)
+    {
+      return luaL_error(L, "freeform area exhausted");
+    }
+
+    self->blocks[self->num_blocks].type = FREE_FORM;
+    strcpy(self->blocks[self->num_blocks].begin, begin);
+    strcpy(self->blocks[self->num_blocks].free_form.end, end);
+    self->num_blocks++;
+
+    lua_pop(L, 3);
   }
-  else if (strlen(begin) >= sizeof(self->freeform_begin))
-  {
-    return luaL_error(L, "freeform begin symbol is too big, maximum length is %d", sizeof(self->freeform_begin) - 1);
-  }
-
-  lua_rawgeti(L, -2, 2);
-  end = lua_tostring(L, -1);
-
-  if (end == NULL)
-  {
-    return luaL_error(L, "freeform end symbol must be a string");
-  }
-  else if (strlen(end) >= sizeof(self->freeform_end))
-  {
-    return luaL_error(L, "freeform end symbol is too big, maximum length is %d", sizeof(self->freeform_end) - 1);
-  }
-
-  strcpy(self->freeform_begin, begin);
-  strcpy(self->freeform_end, end);
-
-  self->blocks[self->num_blocks].type = FREE_FORM;
-  self->blocks[self->num_blocks].begin = self->freeform_begin;
-  self->blocks[self->num_blocks].free_form.end = self->freeform_end;
-  self->num_blocks++;
-
-  lua_pop(L, 3);
-  return 0;
 }
 
 int l_newLexer(lua_State* L)

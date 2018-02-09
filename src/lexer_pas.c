@@ -206,23 +206,23 @@ static int pas_next_lua(lua_State* L, lexer_t* self)
 static void pas_setup_lexer(lexer_t* self)
 {
   self->blocks[0].type = LINE_COMMENT;
-  self->blocks[0].begin = "//";
+  strcpy(self->blocks[0].begin, "//");
 
   self->blocks[1].type = BLOCK_DIRECTIVE;
-  self->blocks[1].begin = "(*$";
-  self->blocks[1].block_directive.end = "*)";
+  strcpy(self->blocks[1].begin, "(*$");
+  strcpy(self->blocks[1].block_directive.end, "*)");
 
   self->blocks[2].type = BLOCK_DIRECTIVE;
-  self->blocks[2].begin = "{$";
-  self->blocks[2].block_directive.end = "}";
+  strcpy(self->blocks[2].begin, "{$");
+  strcpy(self->blocks[2].block_directive.end, "}");
 
   self->blocks[3].type = BLOCK_COMMENT;
-  self->blocks[3].begin = "(*";
-  self->blocks[3].block_comment.end = "*)";
+  strcpy(self->blocks[3].begin, "(*");
+  strcpy(self->blocks[3].block_comment.end, "*)");
 
   self->blocks[4].type = BLOCK_COMMENT;
-  self->blocks[4].begin = "{";
-  self->blocks[4].block_comment.end = "}";
+  strcpy(self->blocks[4].begin, "{");
+  strcpy(self->blocks[4].block_comment.end, "}");
 
   self->num_blocks = 5;
   self->next = pas_next_lua;

@@ -10,7 +10,7 @@ local parse = function(file)
     file = file,
     language = 'cpp',
     symbols = {},
-    freeform = {'[{', '}]'}
+    freeform = {{'[{', '}]'}}
   }
 
   local tokens = {}
@@ -43,7 +43,6 @@ end
 
 local res = {}
 local tokens = parse(arg[1])
-
 local templ = assert(ddlt.newTemplate(template, '--[[', ']]'))
 templ(tokens, function(out) res[#res + 1] = out end)
 
