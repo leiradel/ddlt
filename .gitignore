@@ -60,3 +60,4 @@ dkms.conf
 .vscode/*
 ddlt
 src/boot_lua.h
+src/boot_diet.lua
