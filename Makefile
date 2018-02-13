@@ -37,7 +37,7 @@ src/boot_lua.h: src/boot_diet.lua
 
 # luarocks install luasrcdiet
 src/boot_diet.lua: src/boot.lua
-	luasrcdiet $< -o $@
+	luasrcdiet --noopt-emptylines $< -o $@
 
 install: $(TARGET)
 	cp $(TARGET) $(INST_LIBDIR)
