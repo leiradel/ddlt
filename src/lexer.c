@@ -408,6 +408,11 @@ static int init_source(lua_State* L, lexer_t* self)
   self->source = lua_tostring(L, -1);
   self->source_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   self->line_start = self->source;
+
+  lua_getfield(L, 1, "startline");
+  self->line = luaL_optint(L, -1, 1);
+  lua_pop(L, 1);
+  
   return 0;
 }
 
@@ -605,7 +610,6 @@ int l_newLexer(lua_State* L)
   lua_settop(L, 1);
 
   self = (lexer_t*)lua_newuserdata(L, sizeof(lexer_t));
-  self->line = 1;
   self->source_name_ref = LUA_NOREF;
   self->source_ref = LUA_NOREF;
   self->symbols_ref = LUA_NOREF;

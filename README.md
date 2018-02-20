@@ -227,18 +227,19 @@ line =  25 token = ;              lexeme = ;
 line =  25 token = <eof>          lexeme = <eof>
 ```
 
-See the `example` folder for unit tests and a simple generator written with **ddlt**.
+See the `examples` and `tests` folders for unit tests, a simple tokenizer, and a simple Finite State Machine compiler written with **ddlt**.
 
 ## Documentation
 
 Your parser can require **ddlt** to access functions to tokenize an input source code, and to create templates to generate code, as well as some functions to help deal with the file system.
 
-* `absolute = realpath(path)`: returns the absolute path for the given path
-* `dir, name, ext = split(path)`: splits a path into its constituents, dir, file name, and extension
-* `entries = scandir(path)`: returns a table with all the entries in the specified path
-* `info = stat(path)`: returns a table with information about the object at path, as returned by [stat](https://linux.die.net/man/2/stat) containing `size`, `atime`, `mtime`, `ctime`, `sock`, `link`, `file`, `block`, `dir`, `char`, and `fifo`
-* `lexer = newLexer(options)`: returns a new tokenizer (see below)
-* `template = newTemplate(code, open_tag, close_tag, name)`: returns a function that, when called, will execute the template (see below)
+* `absolute = realpath(path)`: returns the absolute path for the given path.
+* `dir, name, ext = split(path)`: splits a path into its constituents, dir, file name, and extension.
+* `path = join(dir, name, ext)`: joins the path constituents, forming a whole path. Any part can be nil, and will not appear in the resulting path.
+* `entries = scandir(path)`: returns a table with all the entries in the specified path.
+* `info = stat(path)`: returns a table with information about the object at path, as returned by [stat](https://linux.die.net/man/2/stat) containing `size`, `atime`, `mtime`, `ctime`, `sock`, `link`, `file`, `block`, `dir`, `char`, and `fifo`.
+* `lexer = newLexer(options)`: returns a new tokenizer (see below).
+* `template = newTemplate(code, open_tag, close_tag, name)`: returns a function that, when called, will execute the template (see below).
 
 ### newLexer
 
@@ -252,6 +253,7 @@ Your parser can require **ddlt** to access functions to tokenize an input source
 
 Optionally, the table can have these fields:
 
+* `startline`: the starting line for the source code, useful for creating a lexer from a freeform block. Defaults to 1 if not given.
 * `keywords`: an array of valid keywords, which will then be returned instead of the generic `<id>` token.
 
 The resulting object only has one method, `next`. It takes a table where the information of the next produced token is stored:
@@ -322,6 +324,11 @@ As an example, if you use `/*` and `*/` as delimiters:
 The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
 
 ## Changelog
+
+### 2.8.1
+
+* Added an optional starting line to use with the source code
+* Added a Finite State Machine compiler to the `examples` folder
 
 ### 2.8.0
 
