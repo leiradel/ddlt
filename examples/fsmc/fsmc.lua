@@ -448,6 +448,7 @@ local function emit(fsm, path)
   local out = assert(io.open(ddlt.join(dir, name, 'h'), 'w'))
 
   out:write('#pragma once\n\n')
+  out:write('// Generated with FSM compiler, https://github.com/leiradel/ddlt\n\n')
   out:write(fsm.header, '\n')
   out:write('class ', fsm.class, ';\n\n')
   out:write('class ', fsm.id, ' {\n')
@@ -461,6 +462,10 @@ local function emit(fsm, path)
 
   out:write('  ', fsm.id, '(', fsm.class, '& slave): ', fsm.ctx,'(slave), __state(State::', fsm.begin, ') {}\n\n')
   out:write('  State currentState() const { return __state; }\n\n')
+
+  out:write('#ifdef DEBUG_FSM\n')
+  out:write('  const char* stateName(State state) const;\n')
+  out:write('#endif\n\n')
 
   local allTransitions = {}
   local visited = {}
@@ -503,8 +508,24 @@ local function emit(fsm, path)
   local out = assert(io.open(ddlt.join(dir, name, 'cpp'), 'w'))
 
   -- Include the necessary headers
+  out:write('// Generated with FSM compiler, https://github.com/leiradel/ddlt\n\n')
   out:write('#include "', name, '.h"\n')
   out:write('#include "', fsm.class, '.h"\n\n')
+
+  -- Emit utility methods
+  out:write('#ifdef DEBUG_FSM\n')
+  out:write('const char* ', fsm.id, '::stateName(State state) const {\n')
+  out:write('  switch (state) {\n')
+
+  for _, state in ipairs(fsm.states) do
+    out:write('    case State::', state.id, ': return "', state.id, '";\n')
+  end
+
+  out:write('    default: break;\n')
+  out:write('  }\n\n')
+  out:write('  return NULL;\n')
+  out:write('}\n')
+  out:write('#endif\n\n')
 
   -- Emit the global before event
   out:write('bool ', fsm.id, '::before() const {\n')
@@ -589,13 +610,13 @@ local function emit(fsm, path)
       out:write('    case State::', state.id, ': {\n')
       out:write('      if (!before()) {\n')
       out:write('#ifdef DEBUG_FSM\n')
-      out:write('        ', fsm.ctx, '.printf("FSM %s:%u Failed global precondition while switching to ', transition2.target.id, '", __FUNCTION__, __LINE__);\n')
+      out:write('        ', fsm.ctx, '.printf("FSM %s:%u Failed global precondition while switching to %s", __FUNCTION__, __LINE__, stateName(State::', transition2.target.id, '));\n')
       out:write('#endif\n\n')
       out:write('        return false;\n')
       out:write('      }\n\n')
       out:write('      if (!before(__state)) {\n')
       out:write('#ifdef DEBUG_FSM\n')
-      out:write('        ', fsm.ctx, '.printf("FSM %s:%u Failed state precondition while switching to ', transition2.target.id, '", __FUNCTION__, __LINE__);\n')
+      out:write('        ', fsm.ctx, '.printf("FSM %s:%u Failed state precondition while switching to %s", __FUNCTION__, __LINE__, stateName(State::', transition2.target.id, '));\n')
       out:write('#endif\n\n')
       out:write('        return false;\n')
       out:write('      }\n\n')
@@ -611,7 +632,7 @@ local function emit(fsm, path)
           local list = {}
 
           for _, arg in ipairs(args) do
-            list[#list + 1] = arg
+            list[#list + 1] = arg.id
           end
 
           return table.concat(list, ', ')
@@ -634,7 +655,7 @@ local function emit(fsm, path)
         out:write('      after(__state);\n')
         out:write('      after();\n\n')
         out:write('#ifdef DEBUG_FSM\n')
-        out:write('      ', fsm.ctx, '.printf("FSM %s:%u Switched to ', transition2.target.id, '", __FUNCTION__, __LINE__);\n')
+        out:write('      ', fsm.ctx, '.printf("FSM %s:%u Switched to %s", __FUNCTION__, __LINE__, stateName(State::', transition2.target.id, '));\n')
         out:write('#endif\n')
         out:write('      return true;\n')
       elseif transition2.type == 'sequence' then
@@ -644,7 +665,7 @@ local function emit(fsm, path)
         out:write('      }\n')
         out:write('      else {\n')
         out:write('#ifdef DEBUG_FSM\n')
-        out:write('        ', fsm.ctx, '.printf("FSM %s:%u Failed to switch to ', transition2.target.id, '", __FUNCTION__, __LINE__);\n')
+        out:write('        ', fsm.ctx, '.printf("FSM %s:%u Failed to switch to %s", __FUNCTION__, __LINE__, stateName(State::', transition2.target.id, '));\n')
         out:write('#endif\n')
         out:write('      }\n\n')
         out:write('      return __ok;\n')
