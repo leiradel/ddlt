@@ -124,5 +124,6 @@ int l_newTemplate(lua_State* L)
     return 2;
   }
 
-  return 1;
+  lua_pushvalue(L, -2);
+  return 2;
 }
