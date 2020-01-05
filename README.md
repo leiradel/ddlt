@@ -13,7 +13,8 @@ The tokenizer recognizes:
   * Identifiers in the form `[A-Za-z_][A-Za-z_0-9]*`.
   * Numbers in the form:
     * `0x[0-9A-Fa-f]+` as hexadecimal literals
-    * `[0-9]+` as decimal literals
+    * `0b[01]+` as binary literals
+    * `[1-9][0-9]*` as decimal literals
     * `0[0-7]+` as octal literals
     * `[0-9]*\.[0-9]+([Ee][+-]?[0-9]+)?` as float literals
     * `[0-9]+\.[0-9]*([Ee][+-]?[0-9]+)?` as float literals
