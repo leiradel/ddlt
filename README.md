@@ -315,16 +315,49 @@ Templates can be used to make it easier to generate code. The `newTemplate` meth
   * `close_tag`: the close tag
   * `name`: an optional template name, which is used in error messages; `'template'` is used if this argument is not provided
 
-There are two template instructions, one to emit content to the output, and another to execute arbitrary Lua code. To emit content, use the open tag followed by `=`. To execute code, use the open tag followed by `!`.
+There are two template tags, one to emit content to the output, and another to execute arbitrary Lua code. To emit content, use the open tag followed by `=`. To execute code, use the open tag followed by `!`.
 
 As an example, if you use `/*` and `*/` as delimiters:
 
 * `/*= ... */` causes `...` to be generated in the output
 * `/*! ... */` causes `...` to be executed as Lua code
 
-The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, including the result of your parser, and `emit`, a function which must output all the arguments passed to it as a vararg.
+The return value of `newTemplate` is a Lua function that will run the template when executed. This returned function accepts two arguments, `args`, which is used to send arbitrary data to the template, and `emit`, a function which receives the template line number and the code produced by running the template as a vararg (i.e. `emit(line, ...)`).
+
+Example:
+
+```Lua
+local template, code = ddlt.newTemplate(source, '#', '#', path)
+local source = {}
+local last_line = 0
+
+local function emit(line, ...)
+  if line ~= last_line then
+    if #source ~= 0 and source[#source]:sub(-1, -1) ~= '\n' then
+      source[#source + 1] = '\n'
+    end
+
+    source[#source + 1] = string.format('#line %u "%s"\n', line, path)
+    last_line = line
+  end
+
+  local args = {...}
+
+  for i = 1, #args do
+    source[#source + 1] = args[i]
+  end
+end
+
+template(args, emit)
+print(table.concat(source, ''))
+```
 
 ## Changelog
+
+### 3.0.0
+
+* Added the template line as a parameter to the `emit` function
+* `newTemplate` now returns the compiled template code as a second return value
 
 ### 2.8.2
 
