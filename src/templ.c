@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -18,12 +19,22 @@ static const char* reader(lua_State* L, void* data, size_t* size)
   return udata->code;
 }
 
+static void adduint(luaL_Buffer* buffer, unsigned uint)
+{
+  char string[32];
+  int length;
+
+  length = snprintf(string, sizeof(string), "%u", uint);
+  luaL_addlstring(buffer, string, length);
+}
+
 int l_newTemplate(lua_State* L)
 {
   size_t length;
   const char* source;
   const char* current;
   const char* end;
+  unsigned line;
   size_t open_length;
   const char* open_tag;
   size_t close_length;
@@ -31,12 +42,15 @@ int l_newTemplate(lua_State* L)
   const char* chunkname;
   luaL_Buffer code;
   const char* start;
+  unsigned curr_line;
+  const char* eol;
   const char* finish;
   udata_t udata;
 
   source = luaL_checklstring(L, 1, &length);
   current = source;
   end = current + length;
+  line = 1;
 
   open_tag = luaL_checklstring(L, 2, &open_length);
   close_tag = luaL_checklstring(L, 3, &close_length);
@@ -48,12 +62,26 @@ int l_newTemplate(lua_State* L)
   for (;;)
   {
     start = current;
+    curr_line = line;
     
     for (;;)
     {
+      eol = strchr(start, '\n');
       start = strstr(start, open_tag);
 
-      if (start == NULL || start[open_length] == '=' || start[open_length] == '!')
+      if (start == NULL)
+      {
+        break;
+      }
+
+      if (eol != NULL && eol < start)
+      {
+        start = eol + 1;
+        line++;
+        continue;
+      }
+
+      if (start[open_length] == '=' || start[open_length] == '!')
       {
         break;
       }
@@ -63,35 +91,61 @@ int l_newTemplate(lua_State* L)
     
     if (start == NULL)
     {
-      luaL_addstring(&code, "emit[===[");
+      luaL_addstring(&code, "emit(");
+      adduint(&code, curr_line);
+      luaL_addstring(&code, ", [===[");
       luaL_addlstring(&code, current, end - current);
-      luaL_addstring(&code, "]===]");
+      luaL_addstring(&code, "]===])");
       break;
     }
-    
-    finish = strstr(start + open_length + 1, close_tag);
-    
-    if (finish == NULL)
+
+    for (;;)
     {
-      finish = end;
+      finish = strstr(start + open_length + 1, close_tag);
+      eol = strchr(start + open_length + 1, '\n');
+      
+      if (finish == NULL)
+      {
+        finish = end;
+        break;
+      }
+
+      if (eol != NULL && eol < finish)
+      {
+        finish = eol + 1;
+        line++;
+        continue;
+      }
+
+      break;
     }
-    
+        
     if (*current == '\n' || *current == '\r')
     {
-      luaL_addstring(&code, "emit(\'\\n\') emit[===[");
+      luaL_addstring(&code, "emit(");
+      adduint(&code, curr_line);
+      curr_line = line;
+
+      luaL_addstring(&code, ", \'\\n\') emit(");
+      adduint(&code, curr_line);
+      luaL_addstring(&code, ", [===[");
     }
     else
     {
-      luaL_addstring(&code, "emit[===[");
+      luaL_addstring(&code, "emit(");
+      adduint(&code, curr_line);
+      luaL_addstring(&code, ", [===[");
     }
     
     luaL_addlstring(&code, current, start - current);
-    luaL_addstring(&code, "]===] ");
+    luaL_addstring(&code, "]===]) ");
     
     if (start[open_length] == '=')
     {
       start += open_length + 1;
-      luaL_addstring(&code, "emit(tostring(");
+      luaL_addstring(&code, "emit(");
+      adduint(&code, curr_line);
+      luaL_addstring(&code, ", tostring(");
       luaL_addlstring(&code, start, finish - start);
       luaL_addstring(&code, ")) ");
     }
@@ -105,7 +159,7 @@ int l_newTemplate(lua_State* L)
     current = finish + close_length;
   }
   
-  luaL_addstring(&code, "end\n");
+  luaL_addstring(&code, " end\n");
   luaL_pushresult(&code);
 
   udata.code = lua_tolstring(L, -1, &udata.length);
