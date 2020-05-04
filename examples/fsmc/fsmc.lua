@@ -450,7 +450,6 @@ local function emit(fsm, path)
   out:write('#pragma once\n\n')
   out:write('// Generated with FSM compiler, https://github.com/leiradel/ddlt\n\n')
   out:write(fsm.header, '\n')
-  out:write('class ', fsm.class, ';\n\n')
   out:write('class ', fsm.id, ' {\n')
   out:write('public:\n')
 
