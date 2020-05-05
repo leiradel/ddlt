@@ -683,6 +683,38 @@ local function emit(fsm, path)
   end
 
   out:close()
+
+  -- Emit a Graphviz file
+  local out = assert(io.open(ddlt.join(dir, name, 'dot'), 'w'))
+
+  out:write('// Generated with FSM compiler, https://github.com/leiradel/ddlt\n\n')
+  out:write('digraph ', fsm.id, ' {\n')
+
+  for _, state in ipairs(fsm.states) do
+    out:write('    ', state.id, '[')
+    out:write('style = "filled" penwidth = 1 fillcolor = "white" shape = "Mrecord" ')
+    out:write('label = <<table border="0" cellborder="0" cellpadding="3" bgcolor="white">')
+    out:write('<tr><td bgcolor="black" align="center" colspan="2"><font color="white">', state.id, '</font></td></tr>')
+
+    for _, transition in ipairs(state.transitions) do
+      if state.id == transition.target.id then
+        out:write('<tr><td align="left">', transition.id, '</td></tr>')
+      end
+    end
+
+    out:write('</table>>];\n')
+  end
+
+  for _, state in ipairs(fsm.states) do
+    for _, transition in ipairs(state.transitions) do
+      if state.id ~= transition.target.id then
+        out:write('    ', state.id, ' -> ', transition.target.id, ' [label="', transition.id, '"];\n')
+      end
+    end
+  end
+
+  out:write('}\n')
+  out:close()
 end
 
 if #arg ~= 1 then
